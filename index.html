@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>PrankChat</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      background: #1a1a2e;
+      color: white;
+      font-family: 'Segoe UI', sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 10px;
+      color: #e94560;
+    }
+
+    p.subtitle {
+      color: #aaa;
+      margin-bottom: 40px;
+    }
+
+    .card {
+      background: #16213e;
+      border-radius: 16px;
+      padding: 30px;
+      width: 500px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    input, textarea {
+      background: #0f3460;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: white;
+      font-size: 1rem;
+      outline: none;
+      width: 100%;
+    }
+
+    input::placeholder {
+      color: #888;
+    }
+
+    button {
+      background: #e94560;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 1rem;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #c73652;
+    }
+
+    .status {
+      text-align: center;
+      font-size: 0.85rem;
+      padding: 8px;
+      border-radius: 8px;
+    }
+
+    .status.connecte {
+      background: #1a4a2e;
+      color: #4caf50;
+    }
+
+    .status.deconnecte {
+      background: #4a1a1a;
+      color: #f44336;
+    }
+
+    .status.attente {
+      background: #3a3a1a;
+      color: #ffeb3b;
+    }
+
+    .room-section {
+      display: flex;
+      gap: 10px;
+    }
+
+    .room-section input {
+      flex: 1;
+    }
+
+    .room-section button {
+      width: auto;
+      padding: 12px 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>💥 PrankChat</h1>
+  <p class="subtitle">Envoie des vannes à tes amis en temps réel</p>
+
+  <div class="card">
+    <div class="room-section">
+      <input type="text" id="roomCode" placeholder="Code de la room (ex: vannes123)" />
+      <button onclick="joinRoom()">Rejoindre</button>
+    </div>
+
+    <div class="status deconnecte" id="status">❌ Non connecté</div>
+
+    <input type="text" id="imageUrl" placeholder="URL d'une image ou GIF..." />
+    <input type="text" id="caption" placeholder="Texte de la vanne (optionnel)" />
+    <button onclick="sendPrank()">🎯 Envoyer la vanne</button>
+  </div>
+
+  <script>
+    const { ipcRenderer } = require('electron')
+    const io = require('socket.io-client')
+
+    let socket = null
+    let currentRoom = null
+
+    function joinRoom() {
+      const roomCode = document.getElementById('roomCode').value.trim()
+      if (!roomCode) {
+        alert('Entre un code de room !')
+        return
+      }
+
+      socket = io('http://localhost:3000')
+
+      socket.on('connect', () => {
+        socket.emit('join-room', roomCode)
+        currentRoom = roomCode
+        document.getElementById('status').textContent = '⏳ En attente de ton ami...'
+        document.getElementById('status').className = 'status attente'
+      })
+
+      socket.on('friend-connected', () => {
+        document.getElementById('status').textContent = '✅ Ami connecté ! Envoie des vannes !'
+        document.getElementById('status').className = 'status connecte'
+      })
+
+      socket.on('room-users', (count) => {
+        if (count >= 2) {
+          document.getElementById('status').textContent = '✅ Ami connecté ! Envoie des vannes !'
+          document.getElementById('status').className = 'status connecte'
+        }
+      })
+
+      socket.on('receive-prank', (data) => {
+        ipcRenderer.send('show-prank', data)
+      })
+    }
+
+    function sendPrank() {
+      if (!socket || !currentRoom) {
+        alert('Rejoins une room d\'abord !')
+        return
+      }
+
+      const imageUrl = document.getElementById('imageUrl').value
+      const caption = document.getElementById('caption').value
+
+      if (!imageUrl) {
+        alert('Mets une URL d\'image ou GIF !')
+        return
+      }
+
+      socket.emit('send-prank', {
+        roomCode: currentRoom,
+        imageUrl,
+        caption
+      })
+
+      ipcRenderer.send('show-prank', { imageUrl, caption })
+    }
+  </script>
+</body>
+</html>
