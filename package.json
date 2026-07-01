@@ -1,18 +1,41 @@
 {
   "name": "prankchat",
   "version": "1.0.0",
-  "description": "",
+  "description": "Envoie des vannes à tes amis en temps réel",
   "main": "main.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "electron": "electron .",
+    "build": "electron-builder"
+  },
+  "build": {
+    "appId": "com.prankchat.app",
+    "productName": "PrankChat",
+    "win": {
+      "target": "nsis",
+      "icon": null
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "files": [
+      "main.js",
+      "index.html",
+      "overlay.html",
+      "package.json",
+      "node_modules/**/*"
+    ]
   },
   "keywords": [],
-  "author": "",
+  "author": "Mirco",
   "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "electron": "^42.5.1",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3"
+  },
+  "devDependencies": {
+    "electron": "^42.5.1",
+    "electron-builder": "^26.0.12"
   }
 }

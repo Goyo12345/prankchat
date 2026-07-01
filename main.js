@@ -29,7 +29,8 @@ function createOverlay() {
     focusable: false,
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false
+      contextIsolation: false,
+      webSecurity: false
     }
   })
 
@@ -44,4 +45,8 @@ app.whenReady().then(() => {
 
 ipcMain.on('show-prank', (event, data) => {
   overlayWindow.webContents.send('show-prank', data)
+})
+
+ipcMain.on('close-overlay', () => {
+  overlayWindow.webContents.send('close-overlay')
 })

@@ -38,7 +38,7 @@
       gap: 16px;
     }
 
-    input, textarea {
+    input {
       background: #0f3460;
       border: none;
       border-radius: 10px;
@@ -118,7 +118,7 @@
 
     <div class="status deconnecte" id="status">❌ Non connecté</div>
 
-    <input type="text" id="imageUrl" placeholder="URL d'une image ou GIF..." />
+    <input type="text" id="imageUrl" placeholder="URL image, GIF ou vidéo .mp4..." />
     <input type="text" id="caption" placeholder="Texte de la vanne (optionnel)" />
     <button onclick="sendPrank()">🎯 Envoyer la vanne</button>
   </div>
@@ -137,7 +137,7 @@
         return
       }
 
-      socket = io('http://localhost:3000')
+      socket = io('https://prankchat-production.up.railway.app')
 
       socket.on('connect', () => {
         socket.emit('join-room', roomCode)
@@ -185,6 +185,12 @@
 
       ipcRenderer.send('show-prank', { imageUrl, caption })
     }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        ipcRenderer.send('close-overlay')
+      }
+    })
   </script>
 </body>
 </html>
