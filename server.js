@@ -1,7 +1,26 @@
 const http = require('http')
 const { Server } = require('socket.io')
+const fs = require('fs')
+const path = require('path')
 
-const server = http.createServer()
+const server = http.createServer((req, res) => {
+  if (req.url === '/obs' || req.url.startsWith('/obs?')) {
+    const filePath = path.join(__dirname, 'obs.html')
+    fs.readFile(filePath, (err, data) => {
+      if (err) {
+        res.writeHead(404)
+        res.end('Not found')
+        return
+      }
+      res.writeHead(200, { 'Content-Type': 'text/html' })
+      res.end(data)
+    })
+  } else {
+    res.writeHead(200)
+    res.end('PrankChat server running')
+  }
+})
+
 const io = new Server(server, {
   cors: {
     origin: "*",
@@ -39,6 +58,6 @@ io.on('connection', (socket) => {
   })
 })
 
-server.listen(3000, () => {
-  console.log('Serveur PrankChat lancé sur le port 3000')
+server.listen(process.env.PORT || 3000, () => {
+  console.log('Serveur PrankChat lancé sur le port', process.env.PORT || 3000)
 })

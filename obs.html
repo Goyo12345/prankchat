@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: transparent;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #prank-container {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      animation: popin 0.3s ease;
+    }
+
+    @keyframes popin {
+      from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+      to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    }
+
+    #prank-image {
+      max-width: 600px;
+      max-height: 500px;
+      border-radius: 16px;
+      box-shadow: 0 0 40px rgba(0,0,0,0.8);
+    }
+
+    #prank-video {
+      width: 640px;
+      height: 360px;
+      border-radius: 16px;
+      box-shadow: 0 0 40px rgba(0,0,0,0.8);
+    }
+
+    #prank-caption {
+      color: white;
+      font-size: 1.8rem;
+      font-family: 'Segoe UI', sans-serif;
+      font-weight: bold;
+      text-shadow: 2px 2px 8px black;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div id="prank-container">
+    <img id="prank-image" src="" />
+    <video id="prank-video" style="display:none" autoplay></video>
+    <p id="prank-caption"></p>
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script>
+    const container = document.getElementById('prank-container')
+    const img = document.getElementById('prank-image')
+    const video = document.getElementById('prank-video')
+    const caption = document.getElementById('prank-caption')
+
+    const params = new URLSearchParams(window.location.search)
+    const roomCode = params.get('room') || 'obs'
+
+    const socket = io('https://prankchat-production.up.railway.app')
+
+    socket.on('connect', () => {
+      console.log('OBS connecté au serveur')
+      socket.emit('join-room', roomCode)
+    })
+
+    socket.on('receive-prank', (data) => {
+      caption.textContent = data.caption || ''
+      container.style.display = 'flex'
+
+      if (data.imageUrl.match(/\.(mp4|webm|ogg|mov)(\?|$)/i) ||
+          data.imageUrl.includes('catbox.moe') ||
+          data.imageUrl.includes('streamable.com')) {
+        img.style.display = 'none'
+        video.style.display = 'block'
+        video.src = data.imageUrl
+        video.play()
+
+        video.onended = () => {
+          container.style.display = 'none'
+          video.src = ''
+        }
+      } else {
+        video.style.display = 'none'
+        video.src = ''
+        img.style.display = 'block'
+        img.src = data.imageUrl
+
+        setTimeout(() => {
+          container.style.display = 'none'
+        }, 5000)
+      }
+    })
+  </script>
+</body>
+</html>
