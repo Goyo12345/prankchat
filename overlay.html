@@ -4,12 +4,14 @@
   <meta charset="UTF-8">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+
     body {
       background: transparent;
       overflow: hidden;
       width: 100vw;
       height: 100vh;
     }
+
     #prank-container {
       position: fixed;
       top: 50%;
@@ -21,22 +23,26 @@
       gap: 16px;
       animation: popin 0.3s ease;
     }
+
     @keyframes popin {
       from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
       to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
     }
+
     #prank-image {
       max-width: 500px;
       max-height: 400px;
       border-radius: 16px;
       box-shadow: 0 0 40px rgba(0,0,0,0.8);
     }
+
     #prank-video {
       width: 640px;
       height: 360px;
       border-radius: 16px;
       box-shadow: 0 0 40px rgba(0,0,0,0.8);
     }
+
     #prank-caption {
       color: white;
       font-size: 1.5rem;
@@ -62,18 +68,38 @@
     const video = document.getElementById('prank-video')
     const caption = document.getElementById('prank-caption')
 
-    ipcRenderer.on('show-prank', (event, data) => {
-      caption.textContent = data.caption || ''
+    let currentTmpFile = null
 
-      if (data.imageUrl.match(/\.(mp4|webm|ogg|mov)(\?|$)/i)) {
+    function closePrank() {
+      container.style.display = 'none'
+      video.src = ''
+      if (currentTmpFile) {
+        ipcRenderer.send('delete-tmp', currentTmpFile)
+        currentTmpFile = null
+      }
+    }
+
+    function isVideo(url) {
+      return url.match(/\.(mp4|webm|ogg|mov)(\?|$)/i) ||
+             url.startsWith('file://') ||
+             url.includes('catbox.moe') ||
+             url.includes('streamable.com') ||
+             url.includes('i.imgur.com')
+    }
+
+    ipcRenderer.on('show-prank', (event, data) => {
+      currentTmpFile = data.tmpFile || null
+      caption.textContent = data.caption || ''
+      container.style.display = 'flex'
+
+      if (isVideo(data.imageUrl)) {
         img.style.display = 'none'
         video.style.display = 'block'
         video.src = data.imageUrl
         video.play()
 
         video.onended = () => {
-          container.style.display = 'none'
-          video.src = ''
+          closePrank()
         }
       } else {
         video.style.display = 'none'
@@ -82,16 +108,13 @@
         img.src = data.imageUrl
 
         setTimeout(() => {
-          container.style.display = 'none'
+          closePrank()
         }, 5000)
       }
-
-      container.style.display = 'flex'
     })
 
     ipcRenderer.on('close-overlay', () => {
-      container.style.display = 'none'
-      video.src = ''
+      closePrank()
     })
   </script>
 </body>
