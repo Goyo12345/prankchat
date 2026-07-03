@@ -20,12 +20,14 @@
       "allowToChangeInstallationDirectory": true
     },
     "files": [
-      "main.js",
-      "index.html",
-      "overlay.html",
-      "package.json",
-      "node_modules/**/*"
-    ]
+  "main.js",
+  "index.html",
+  "overlay.html",
+  "obs.html",
+  "package.json",
+  "yt-dlp.exe",
+  "node_modules/**/*"
+]
   },
   "keywords": [],
   "author": "Mirco",
