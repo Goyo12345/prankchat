@@ -11,6 +11,12 @@
   "build": {
     "appId": "com.prankchat.app",
     "productName": "PrankChat",
+    "extraResources": [
+      {
+        "from": "yt-dlp.exe",
+        "to": "yt-dlp.exe"
+      }
+    ],
     "win": {
       "target": "nsis",
       "icon": null
@@ -20,14 +26,13 @@
       "allowToChangeInstallationDirectory": true
     },
     "files": [
-  "main.js",
-  "index.html",
-  "overlay.html",
-  "obs.html",
-  "package.json",
-  "yt-dlp.exe",
-  "node_modules/**/*"
-]
+      "main.js",
+      "index.html",
+      "overlay.html",
+      "obs.html",
+      "package.json",
+      "node_modules/**/*"
+    ]
   },
   "keywords": [],
   "author": "Mirco",

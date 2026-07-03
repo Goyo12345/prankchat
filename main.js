@@ -51,8 +51,9 @@ function isDirectMedia(url) {
 
 function downloadAndPlay(url, data) {
   const tmpFile = path.join(os.tmpdir(), `prankchat_${Date.now()}.mp4`)
-  const ytdlp = path.join(__dirname, 'yt-dlp.exe')
-
+ const ytdlp = app.isPackaged 
+  ? path.join(process.resourcesPath, 'yt-dlp.exe')
+  : path.join(app.getAppPath(), 'yt-dlp.exe')
   const cmd = `"${ytdlp}" -o "${tmpFile}" --no-playlist -f "best[ext=mp4]/best" "${url}"`
 
   exec(cmd, (error) => {
