@@ -69,6 +69,10 @@
       background: #c73652;
     }
 
+    button:disabled {
+      cursor: not-allowed;
+    }
+
     .status {
       text-align: center;
       font-size: 0.85rem;
@@ -118,9 +122,9 @@
 
     <div class="status deconnecte" id="status">❌ Non connecté</div>
 
-    <input type="text" id="imageUrl" placeholder="URL image, GIF ou vidéo .mp4..." />
+    <input type="text" id="imageUrl" placeholder="URL image, GIF, YouTube, TikTok..." />
     <input type="text" id="caption" placeholder="Texte de la vanne (optionnel)" />
-    <button onclick="sendPrank()">🎯 Envoyer la vanne</button>
+    <button id="sendBtn" onclick="sendPrank()">🎯 Envoyer la vanne</button>
   </div>
 
   <script>
@@ -177,6 +181,11 @@
         return
       }
 
+      const btn = document.getElementById('sendBtn')
+      btn.disabled = true
+      btn.textContent = '⏳ Envoi en cours...'
+      btn.style.background = '#888'
+
       socket.emit('send-prank', {
         roomCode: currentRoom,
         imageUrl,
@@ -184,6 +193,12 @@
       })
 
       ipcRenderer.send('show-prank', { imageUrl, caption })
+
+      setTimeout(() => {
+        btn.disabled = false
+        btn.textContent = '🎯 Envoyer la vanne'
+        btn.style.background = '#e94560'
+      }, 8000)
     }
 
     document.addEventListener('keydown', (e) => {
