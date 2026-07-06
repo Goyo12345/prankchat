@@ -11,7 +11,7 @@ function setupYtdlp() {
   if (!fs.existsSync(ytdlpPath)) {
     console.log('Installation de yt-dlp...')
     try {
-      execSync(`curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o ${ytdlpPath} && chmod +x ${ytdlpPath}`)
+      execSync(`wget -q https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O ${ytdlpPath} && chmod +x ${ytdlpPath}`)
       console.log('yt-dlp installé !')
     } catch (e) {
       console.error('Erreur installation yt-dlp:', e)
