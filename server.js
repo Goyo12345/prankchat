@@ -10,12 +10,30 @@ const ytdlpPath = path.join(os.tmpdir(), 'yt-dlp')
 function setupYtdlp() {
   if (!fs.existsSync(ytdlpPath)) {
     console.log('Installation de yt-dlp...')
-    try {
-      execSync(`wget -q https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O ${ytdlpPath} && chmod +x ${ytdlpPath}`)
-      console.log('yt-dlp installé !')
-    } catch (e) {
+    const https = require('https')
+    const file = fs.createWriteStream(ytdlpPath)
+    
+    https.get('https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp', (response) => {
+      if (response.statusCode === 302 || response.statusCode === 301) {
+        https.get(response.headers.location, (res) => {
+          res.pipe(file)
+          file.on('finish', () => {
+            file.close()
+            fs.chmodSync(ytdlpPath, '755')
+            console.log('yt-dlp installé !')
+          })
+        })
+      } else {
+        response.pipe(file)
+        file.on('finish', () => {
+          file.close()
+          fs.chmodSync(ytdlpPath, '755')
+          console.log('yt-dlp installé !')
+        })
+      }
+    }).on('error', (e) => {
       console.error('Erreur installation yt-dlp:', e)
-    }
+    })
   } else {
     console.log('yt-dlp déjà présent')
   }
