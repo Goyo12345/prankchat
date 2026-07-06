@@ -5,7 +5,6 @@ const path = require('path')
 const { exec, execSync } = require('child_process')
 const os = require('os')
 
-// Installer yt-dlp au démarrage si pas présent
 const ytdlpPath = path.join(os.tmpdir(), 'yt-dlp')
 
 function setupYtdlp() {
@@ -31,7 +30,7 @@ function isYoutubeOrTiktok(url) {
 function downloadVideo(url) {
   return new Promise((resolve, reject) => {
     const tmpFile = path.join(os.tmpdir(), `prankchat_${Date.now()}.mp4`)
-    const cmd = `${ytdlpPath} -o "${tmpFile}" --no-playlist -f "best[ext=mp4]/best" --max-filesize 50m "${url}"`
+    const cmd = `${ytdlpPath} -o "${tmpFile}" --no-playlist -f "best[ext=mp4]/best" --max-filesize 20m "${url}"`
     
     exec(cmd, (error) => {
       if (error) {
@@ -44,7 +43,28 @@ function downloadVideo(url) {
 }
 
 const server = http.createServer((req, res) => {
-  if (req.url === '/obs' || req.url.startsWith('/obs?')) {
+  // Servir les vidéos temporaires
+  if (req.url.startsWith('/video/')) {
+    const filename = req.url.replace('/video/', '')
+    const filePath = path.join(os.tmpdir(), filename)
+    
+    if (fs.existsSync(filePath)) {
+      res.writeHead(200, { 'Content-Type': 'video/mp4' })
+      const stream = fs.createReadStream(filePath)
+      stream.pipe(res)
+      
+      // Supprimer après 30 secondes
+      setTimeout(() => {
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath)
+          console.log('Vidéo supprimée:', filename)
+        }
+      }, 30000)
+    } else {
+      res.writeHead(404)
+      res.end('Not found')
+    }
+  } else if (req.url === '/obs' || req.url.startsWith('/obs?')) {
     const filePath = path.join(__dirname, 'obs.html')
     fs.readFile(filePath, (err, data) => {
       if (err) {
@@ -65,8 +85,7 @@ const io = new Server(server, {
   cors: {
     origin: "*",
     methods: ["GET", "POST"]
-  },
-  maxHttpBufferSize: 1e8
+  }
 })
 
 const rooms = {}
@@ -89,16 +108,12 @@ io.on('connection', (socket) => {
       try {
         console.log('Téléchargement:', data.imageUrl)
         const tmpFile = await downloadVideo(data.imageUrl)
-        const videoBuffer = fs.readFileSync(tmpFile)
-        const base64 = videoBuffer.toString('base64')
+        const filename = path.basename(tmpFile)
+        const videoUrl = `https://prankchat-production.up.railway.app/video/${filename}`
         
-        // Supprimer le fichier tmp
-        fs.unlinkSync(tmpFile)
-        
-        // Envoyer la vidéo en base64 à la room
         socket.to(data.roomCode).emit('receive-prank', {
-          caption: data.caption,
-          videoBase64: base64
+          imageUrl: videoUrl,
+          caption: data.caption
         })
       } catch (e) {
         console.error('Erreur téléchargement:', e)
