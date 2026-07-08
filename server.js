@@ -2,38 +2,34 @@ const http = require('http')
 const { Server } = require('socket.io')
 const fs = require('fs')
 const path = require('path')
-const { exec, execSync } = require('child_process')
+const { exec, https: httpsModule } = require('child_process')
 const os = require('os')
+const https = require('https')
 
 const ytdlpPath = path.join(os.tmpdir(), 'yt-dlp')
 
 function setupYtdlp() {
   if (!fs.existsSync(ytdlpPath)) {
     console.log('Installation de yt-dlp...')
-    const https = require('https')
     const file = fs.createWriteStream(ytdlpPath)
     
-    https.get('https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp', (response) => {
-      if (response.statusCode === 302 || response.statusCode === 301) {
-        https.get(response.headers.location, (res) => {
-          res.pipe(file)
+    function download(url) {
+      https.get(url, (response) => {
+        if (response.statusCode === 302 || response.statusCode === 301) {
+          download(response.headers.location)
+        } else {
+          response.pipe(file)
           file.on('finish', () => {
             file.close()
             fs.chmodSync(ytdlpPath, '755')
             console.log('yt-dlp installé !')
           })
-        })
-      } else {
-        response.pipe(file)
-        file.on('finish', () => {
-          file.close()
-          fs.chmodSync(ytdlpPath, '755')
-          console.log('yt-dlp installé !')
-        })
-      }
-    }).on('error', (e) => {
-      console.error('Erreur installation yt-dlp:', e)
-    })
+        }
+      }).on('error', (e) => {
+        console.error('Erreur installation yt-dlp:', e)
+      })
+    }
+    download('https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp')
   } else {
     console.log('yt-dlp déjà présent')
   }
@@ -63,30 +59,7 @@ function downloadVideo(url) {
 }
 
 const server = http.createServer((req, res) => {
-  // Servir les vidéos temporaires
-if (req.url.startsWith('/video/')) {
-    const filename = req.url.replace('/video/', '')
-    const filePath = path.join(os.tmpdir(), filename)
-    console.log('Cherche vidéo:', filePath)
-    console.log('Existe:', fs.existsSync(filePath))
-    
-    if (fs.existsSync(filePath)) {
-      res.writeHead(200, { 'Content-Type': 'video/mp4' })
-      const stream = fs.createReadStream(filePath)
-      stream.pipe(res)
-      
-      // Supprimer après 30 secondes
-      setTimeout(() => {
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath)
-          console.log('Vidéo supprimée:', filename)
-        }
-      }, 30000)
-    } else {
-      res.writeHead(404)
-      res.end('Not found')
-    }
-  } else if (req.url === '/obs' || req.url.startsWith('/obs?')) {
+  if (req.url === '/obs' || req.url.startsWith('/obs?')) {
     const filePath = path.join(__dirname, 'obs.html')
     fs.readFile(filePath, (err, data) => {
       if (err) {
@@ -107,7 +80,8 @@ const io = new Server(server, {
   cors: {
     origin: "*",
     methods: ["GET", "POST"]
-  }
+  },
+  maxHttpBufferSize: 1e8
 })
 
 const rooms = {}
@@ -130,12 +104,15 @@ io.on('connection', (socket) => {
       try {
         console.log('Téléchargement:', data.imageUrl)
         const tmpFile = await downloadVideo(data.imageUrl)
-        const filename = path.basename(tmpFile)
-        const videoUrl = `https://prankchat-production.up.railway.app/video/${filename}`
+        const videoBuffer = fs.readFileSync(tmpFile)
+        const base64 = videoBuffer.toString('base64')
+        
+        fs.unlinkSync(tmpFile)
+        console.log('Vidéo supprimée, envoi en base64')
         
         socket.to(data.roomCode).emit('receive-prank', {
-          imageUrl: videoUrl,
-          caption: data.caption
+          caption: data.caption,
+          videoBase64: base64
         })
       } catch (e) {
         console.error('Erreur téléchargement:', e)
