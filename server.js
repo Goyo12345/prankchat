@@ -48,13 +48,15 @@ function isYoutubeOrTiktok(url) {
 function downloadVideo(url) {
   return new Promise((resolve, reject) => {
     const tmpFile = path.join(os.tmpdir(), `prankchat_${Date.now()}.mp4`)
-    const cmd = `${ytdlpPath} -o "${tmpFile}" --no-playlist -f "best[ext=mp4]/best" --max-filesize 20m "${url}"`
+    const cmd = `${ytdlpPath} -o "${tmpFile}" --no-playlist -f "worst[ext=mp4]/worst" --max-filesize 10m "${url}"`
     
-    exec(cmd, (error) => {
+    exec(cmd, { timeout: 60000 }, (error, stdout, stderr) => {
       if (error) {
+        console.error('Erreur yt-dlp:', stderr)
         reject(error)
         return
       }
+      console.log('Téléchargement terminé:', tmpFile)
       resolve(tmpFile)
     })
   })
