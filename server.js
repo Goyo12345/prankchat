@@ -2,11 +2,14 @@ const http = require('http')
 const { Server } = require('socket.io')
 const fs = require('fs')
 const path = require('path')
-const { exec, https: httpsModule } = require('child_process')
+const { exec } = require('child_process')
 const os = require('os')
 const https = require('https')
 
 const ytdlpPath = path.join(os.tmpdir(), 'yt-dlp')
+
+// Stockage vidéos en mémoire
+const videoCache = {}
 
 function setupYtdlp() {
   if (!fs.existsSync(ytdlpPath)) {
@@ -52,14 +55,40 @@ function downloadVideo(url) {
         reject(error)
         return
       }
+      
       console.log('Téléchargement terminé:', tmpFile)
-      resolve(tmpFile)
+      
+      // Lire la vidéo en mémoire
+      const videoBuffer = fs.readFileSync(tmpFile)
+      fs.unlinkSync(tmpFile)
+      
+      const videoId = `video_${Date.now()}`
+      videoCache[videoId] = videoBuffer
+      
+      // Supprimer de la mémoire après 60 secondes
+      setTimeout(() => {
+        delete videoCache[videoId]
+        console.log('Vidéo supprimée de la mémoire:', videoId)
+      }, 60000)
+      
+      resolve(videoId)
     })
   })
 }
 
 const server = http.createServer((req, res) => {
-  if (req.url === '/obs' || req.url.startsWith('/obs?')) {
+  if (req.url.startsWith('/video/')) {
+    const videoId = req.url.replace('/video/', '')
+    console.log('Cherche vidéo en mémoire:', videoId)
+    
+    if (videoCache[videoId]) {
+      res.writeHead(200, { 'Content-Type': 'video/mp4' })
+      res.end(videoCache[videoId])
+    } else {
+      res.writeHead(404)
+      res.end('Not found')
+    }
+  } else if (req.url === '/obs' || req.url.startsWith('/obs?')) {
     const filePath = path.join(__dirname, 'obs.html')
     fs.readFile(filePath, (err, data) => {
       if (err) {
@@ -80,8 +109,7 @@ const io = new Server(server, {
   cors: {
     origin: "*",
     methods: ["GET", "POST"]
-  },
-  maxHttpBufferSize: 1e8
+  }
 })
 
 const rooms = {}
@@ -103,23 +131,16 @@ io.on('connection', (socket) => {
     if (isYoutubeOrTiktok(data.imageUrl)) {
       try {
         console.log('Téléchargement:', data.imageUrl)
-        const tmpFile = await downloadVideo(data.imageUrl)
-        const videoBuffer = fs.readFileSync(tmpFile)
-        const base64 = videoBuffer.toString('base64')
-        
-        fs.unlinkSync(tmpFile)
-        console.log('Vidéo supprimée, envoi en base64')
+        const videoId = await downloadVideo(data.imageUrl)
+        const videoUrl = `https://prankchat-production.up.railway.app/video/${videoId}`
+        console.log('URL vidéo:', videoUrl)
         
         socket.to(data.roomCode).emit('receive-prank', {
-          caption: data.caption,
-          videoBase64: base64
+          imageUrl: videoUrl,
+          caption: data.caption
         })
       } catch (e) {
         console.error('Erreur téléchargement:', e)
-        socket.to(data.roomCode).emit('receive-prank', {
-          imageUrl: data.imageUrl,
-          caption: data.caption
-        })
       }
     } else {
       socket.to(data.roomCode).emit('receive-prank', {
