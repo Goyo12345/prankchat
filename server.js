@@ -64,9 +64,11 @@ function downloadVideo(url) {
 
 const server = http.createServer((req, res) => {
   // Servir les vidéos temporaires
-  if (req.url.startsWith('/video/')) {
+if (req.url.startsWith('/video/')) {
     const filename = req.url.replace('/video/', '')
     const filePath = path.join(os.tmpdir(), filename)
+    console.log('Cherche vidéo:', filePath)
+    console.log('Existe:', fs.existsSync(filePath))
     
     if (fs.existsSync(filePath)) {
       res.writeHead(200, { 'Content-Type': 'video/mp4' })
