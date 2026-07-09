@@ -32,7 +32,7 @@ function setupYtdlp() {
         console.error('Erreur installation yt-dlp:', e)
       })
     }
-    download('https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp')
+    download('https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux')
   } else {
     console.log('yt-dlp déjà présent')
   }
