@@ -81,17 +81,7 @@
       caption.textContent = data.caption || ''
       container.style.display = 'flex'
 
-      if (data.videoBase64) {
-        img.style.display = 'none'
-        video.style.display = 'block'
-        video.src = 'data:video/mp4;base64,' + data.videoBase64
-        video.play()
-
-        video.onended = () => {
-          container.style.display = 'none'
-          video.src = ''
-        }
-      } else if (data.imageUrl && (data.imageUrl.match(/\.(mp4|webm|ogg|mov)(\?|$)/i) ||
+      if (data.imageUrl && (data.imageUrl.match(/\.(mp4|webm|ogg|mov)(\?|$)/i) ||
           data.imageUrl.includes('catbox.moe') ||
           data.imageUrl.includes('streamable.com'))) {
         img.style.display = 'none'

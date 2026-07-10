@@ -88,6 +88,12 @@
     }
 
     ipcRenderer.on('show-prank', (event, data) => {
+      // Si une vidéo précédente n'a pas encore été nettoyée, on la supprime
+      // avant d'en afficher une nouvelle (évite les fichiers qui s'accumulent).
+      if (currentTmpFile) {
+        ipcRenderer.send('delete-tmp', currentTmpFile)
+      }
+
       currentTmpFile = data.tmpFile || null
       caption.textContent = data.caption || ''
       container.style.display = 'flex'
@@ -99,6 +105,10 @@
         video.play()
 
         video.onended = () => {
+          closePrank()
+        }
+        // Si la vidéo plante, on nettoie quand même le fichier.
+        video.onerror = () => {
           closePrank()
         }
       } else {

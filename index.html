@@ -134,6 +134,12 @@
     let socket = null
     let currentRoom = null
 
+    function isYoutubeOrTiktok(url) {
+      return url.includes('youtube.com') ||
+             url.includes('youtu.be') ||
+             url.includes('tiktok.com')
+    }
+
     function joinRoom() {
       const roomCode = document.getElementById('roomCode').value.trim()
       if (!roomCode) {
@@ -186,13 +192,25 @@
       btn.textContent = '⏳ Envoi en cours...'
       btn.style.background = '#888'
 
-      socket.emit('send-prank', {
-        roomCode: currentRoom,
-        imageUrl,
-        caption
-      })
+      if (isYoutubeOrTiktok(imageUrl)) {
+        // YouTube/TikTok : on télécharge sur CE PC puis on relaie au serveur.
+        // (Le serveur relaiera le lien .mp4 à OBS et à l'ami.)
+        ipcRenderer.send('download-and-relay', {
+          imageUrl,
+          caption,
+          roomCode: currentRoom,
+          senderId: socket.id
+        })
+      } else {
+        // Image / GIF / vidéo .mp4 directe : le serveur relaie l'URL telle quelle.
+        socket.emit('send-prank', {
+          roomCode: currentRoom,
+          imageUrl,
+          caption
+        })
 
-      ipcRenderer.send('show-prank', { imageUrl, caption })
+        ipcRenderer.send('show-prank', { imageUrl, caption })
+      }
 
       setTimeout(() => {
         btn.disabled = false

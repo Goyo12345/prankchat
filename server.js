@@ -2,95 +2,78 @@ const http = require('http')
 const { Server } = require('socket.io')
 const fs = require('fs')
 const path = require('path')
-const { exec } = require('child_process')
-const os = require('os')
-const https = require('https')
 
-const ytdlpPath = path.join(os.tmpdir(), 'yt-dlp')
+// L'URL publique de ton serveur Railway (sert à construire les liens vidéo)
+const SERVER_URL = 'https://prankchat-production.up.railway.app'
 
-// Stockage vidéos en mémoire
+// Les vidéos sont gardées en mémoire quelques minutes,
+// juste le temps qu'OBS et l'ami les lisent.
 const videoCache = {}
 
-function setupYtdlp() {
-  if (!fs.existsSync(ytdlpPath)) {
-    console.log('Installation de yt-dlp...')
-    const file = fs.createWriteStream(ytdlpPath)
-    
-    function download(url) {
-      https.get(url, (response) => {
-        if (response.statusCode === 302 || response.statusCode === 301) {
-          download(response.headers.location)
-        } else {
-          response.pipe(file)
-          file.on('finish', () => {
-            file.close()
-            fs.chmodSync(ytdlpPath, '755')
-            console.log('yt-dlp installé !')
-          })
-        }
-      }).on('error', (e) => {
-        console.error('Erreur installation yt-dlp:', e)
-      })
+const server = http.createServer((req, res) => {
+  // 1) L'app de l'expéditeur nous envoie une vidéo déjà téléchargée sur son PC
+  if (req.method === 'POST' && req.url.startsWith('/upload')) {
+    const urlObj = new URL(req.url, 'http://localhost')
+    const room = urlObj.searchParams.get('room')
+    const caption = urlObj.searchParams.get('caption') || ''
+    const senderId = urlObj.searchParams.get('senderId') || ''
+
+    if (!room) {
+      res.writeHead(400)
+      res.end('room manquant')
+      return
     }
-    download('https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux')
-  } else {
-    console.log('yt-dlp déjà présent')
-  }
-}
 
-function isYoutubeOrTiktok(url) {
-  return url.includes('youtube.com') || 
-         url.includes('youtu.be') || 
-         url.includes('tiktok.com')
-}
+    // On récupère les octets de la vidéo au fur et à mesure
+    const chunks = []
+    req.on('data', (chunk) => chunks.push(chunk))
+    req.on('end', () => {
+      const buffer = Buffer.concat(chunks)
+      const videoId = `video_${Date.now()}.mp4`
+      videoCache[videoId] = buffer
+      console.log(`Vidéo reçue (${(buffer.length / 1024 / 1024).toFixed(1)} Mo) -> ${videoId}`)
 
-function downloadVideo(url) {
-  return new Promise((resolve, reject) => {
-    const tmpFile = path.join(os.tmpdir(), `prankchat_${Date.now()}.mp4`)
-    const cmd = `${ytdlpPath} -o "${tmpFile}" --no-playlist -f "worst[ext=mp4]/worst" --max-filesize 10m "${url}"`
-    
-    exec(cmd, { timeout: 60000 }, (error, stdout, stderr) => {
-      if (error) {
-        console.error('Erreur yt-dlp:', stderr)
-        reject(error)
-        return
-      }
-      
-      console.log('Téléchargement terminé:', tmpFile)
-      
-      // Lire la vidéo en mémoire
-      const videoBuffer = fs.readFileSync(tmpFile)
-      fs.unlinkSync(tmpFile)
-      
-      const videoId = `video_${Date.now()}`
-      videoCache[videoId] = videoBuffer
-      
-      // Supprimer de la mémoire après 60 secondes
+      // On la supprime de la mémoire après 2 minutes
       setTimeout(() => {
         delete videoCache[videoId]
         console.log('Vidéo supprimée de la mémoire:', videoId)
-      }, 60000)
-      
-      resolve(videoId)
-    })
-  })
-}
+      }, 120000)
 
-const server = http.createServer((req, res) => {
+      // On envoie le lien direct .mp4 à toute la room (OBS + ami),
+      // sauf à l'expéditeur qui l'affiche déjà lui-même.
+      const videoUrl = `${SERVER_URL}/video/${videoId}`
+      io.to(room).except(senderId).emit('receive-prank', {
+        imageUrl: videoUrl,
+        caption: caption
+      })
+
+      res.writeHead(200, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ videoUrl }))
+    })
+    return
+  }
+
+  // 2) OBS (ou l'ami) lit une vidéo gardée en mémoire
   if (req.url.startsWith('/video/')) {
     const videoId = req.url.replace('/video/', '')
     console.log('Cherche vidéo en mémoire:', videoId)
-    
+
     if (videoCache[videoId]) {
-      res.writeHead(200, { 'Content-Type': 'video/mp4' })
+      res.writeHead(200, {
+        'Content-Type': 'video/mp4',
+        'Access-Control-Allow-Origin': '*'
+      })
       res.end(videoCache[videoId])
     } else {
       res.writeHead(404)
       res.end('Not found')
     }
-  } else if (req.url === '/obs' || req.url.startsWith('/obs?')) {
-    const filePath = path.join(__dirname, 'obs.html')
-    fs.readFile(filePath, (err, data) => {
+    return
+  }
+
+  // 3) La page OBS
+  if (req.url === '/obs' || req.url.startsWith('/obs?')) {
+    fs.readFile(path.join(__dirname, 'obs.html'), (err, data) => {
       if (err) {
         res.writeHead(404)
         res.end('Not found')
@@ -99,16 +82,17 @@ const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html' })
       res.end(data)
     })
-  } else {
-    res.writeHead(200)
-    res.end('PrankChat server running')
+    return
   }
+
+  res.writeHead(200)
+  res.end('PrankChat server running')
 })
 
 const io = new Server(server, {
   cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
+    origin: '*',
+    methods: ['GET', 'POST']
   }
 })
 
@@ -122,43 +106,28 @@ io.on('connection', (socket) => {
     rooms[roomCode] = rooms[roomCode] || []
     rooms[roomCode].push(socket.id)
     console.log(`${socket.id} a rejoint la room: ${roomCode}`)
-    
+
     socket.to(roomCode).emit('friend-connected')
     io.to(roomCode).emit('room-users', rooms[roomCode].length)
   })
 
-  socket.on('send-prank', async (data) => {
-    if (isYoutubeOrTiktok(data.imageUrl)) {
-      try {
-        console.log('Téléchargement:', data.imageUrl)
-        const videoId = await downloadVideo(data.imageUrl)
-        const videoUrl = `https://prankchat-production.up.railway.app/video/${videoId}`
-        console.log('URL vidéo:', videoUrl)
-        
-        socket.to(data.roomCode).emit('receive-prank', {
-          imageUrl: videoUrl,
-          caption: data.caption
-        })
-      } catch (e) {
-        console.error('Erreur téléchargement:', e)
-      }
-    } else {
-      socket.to(data.roomCode).emit('receive-prank', {
-        imageUrl: data.imageUrl,
-        caption: data.caption
-      })
-    }
+  // Images, GIFs et vidéos .mp4 directes : on relaie l'URL telle quelle.
+  // Les liens YouTube/TikTok NE passent PAS par ici : ils sont téléchargés
+  // sur le PC de l'expéditeur puis envoyés via /upload (voir plus haut).
+  socket.on('send-prank', (data) => {
+    socket.to(data.roomCode).emit('receive-prank', {
+      imageUrl: data.imageUrl,
+      caption: data.caption
+    })
   })
 
   socket.on('disconnect', () => {
     console.log('Utilisateur déconnecté:', socket.id)
     for (const room in rooms) {
-      rooms[room] = rooms[room].filter(id => id !== socket.id)
+      rooms[room] = rooms[room].filter((id) => id !== socket.id)
     }
   })
 })
-
-setupYtdlp()
 
 server.listen(process.env.PORT || 3000, () => {
   console.log('Serveur PrankChat lancé sur le port', process.env.PORT || 3000)
