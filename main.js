@@ -64,7 +64,8 @@ function isDirectMedia(url) {
 function downloadAndPlay(url, data) {
   const tmpFile = path.join(os.tmpdir(), `prankchat_${Date.now()}.mp4`)
   const ytdlp = getYtdlpPath()
-  const cmd = `"${ytdlp}" -o "${tmpFile}" --no-playlist -f "best[ext=mp4]/best" "${url}"`
+  // On force le codec H.264 pour que la vidéo s'affiche partout (pas juste le son).
+  const cmd = `"${ytdlp}" -o "${tmpFile}" --no-playlist -f "best[ext=mp4]/best" -S "vcodec:h264" "${url}"`
 
   exec(cmd, (error) => {
     if (error) {
@@ -86,8 +87,9 @@ function downloadAndPlay(url, data) {
 function downloadAndRelay(data) {
   const tmpFile = path.join(os.tmpdir(), `prankchat_${Date.now()}.mp4`)
   const ytdlp = getYtdlpPath()
-  // On limite à 480p et 50 Mo : suffisant pour l'overlay, et léger à envoyer.
-  const cmd = `"${ytdlp}" -o "${tmpFile}" --no-playlist -f "best[height<=480][ext=mp4]/best[ext=mp4]/best" --max-filesize 50m "${data.imageUrl}"`
+  // -S "vcodec:h264,res:480" : on force le codec H.264 (lisible partout, sinon
+  // TikTok donne du H.265 = son sans image) et on vise du ~480p pour rester léger.
+  const cmd = `"${ytdlp}" -o "${tmpFile}" --no-playlist -f "best[ext=mp4]/best" -S "vcodec:h264,res:480" --max-filesize 50m "${data.imageUrl}"`
 
   exec(cmd, { timeout: 120000 }, (error) => {
     if (error) {
