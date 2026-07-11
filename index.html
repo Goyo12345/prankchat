@@ -133,6 +133,7 @@
 
     let socket = null
     let currentRoom = null
+    let mySendToken = null
 
     function isYoutubeOrTiktok(url) {
       return url.includes('youtube.com') ||
@@ -150,7 +151,10 @@
       socket = io('https://prankchat-production.up.railway.app')
 
       socket.on('connect', () => {
-        socket.emit('join-room', roomCode)
+        // On rejoint la room et on récupère notre jeton secret d'envoi.
+        socket.emit('join-room', roomCode, (token) => {
+          mySendToken = token
+        })
         currentRoom = roomCode
         document.getElementById('status').textContent = '⏳ En attente de ton ami...'
         document.getElementById('status').className = 'status attente'
@@ -199,7 +203,8 @@
           imageUrl,
           caption,
           roomCode: currentRoom,
-          senderId: socket.id
+          senderId: socket.id,
+          sendToken: mySendToken
         })
       } else {
         // Image / GIF / vidéo .mp4 directe : le serveur relaie l'URL telle quelle.

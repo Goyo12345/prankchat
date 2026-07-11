@@ -115,7 +115,8 @@ function uploadToServer(tmpFile, data) {
   const query =
     `room=${encodeURIComponent(data.roomCode)}` +
     `&caption=${encodeURIComponent(data.caption || '')}` +
-    `&senderId=${encodeURIComponent(data.senderId || '')}`
+    `&senderId=${encodeURIComponent(data.senderId || '')}` +
+    `&token=${encodeURIComponent(data.sendToken || '')}`
 
   const options = {
     hostname: SERVER_HOST,
