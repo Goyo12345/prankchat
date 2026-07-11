@@ -116,7 +116,8 @@
 
   <div class="card">
     <div class="room-section">
-      <input type="text" id="roomCode" placeholder="Code de la room (ex: vannes123)" />
+      <input type="text" id="roomCode" placeholder="Code de la room" />
+      <button onclick="generateRoomCode()" title="Générer un code sécurisé">🎲</button>
       <button onclick="joinRoom()">Rejoindre</button>
     </div>
 
@@ -139,6 +140,19 @@
       return url.includes('youtube.com') ||
              url.includes('youtu.be') ||
              url.includes('tiktok.com')
+    }
+
+    // Génère un code de room aléatoire et impossible à deviner.
+    // On évite les caractères ambigus (0/O, 1/l/i) pour qu'il reste lisible.
+    function generateRoomCode() {
+      const chars = 'abcdefghjkmnpqrstuvwxyz23456789'
+      const bytes = new Uint8Array(8)
+      window.crypto.getRandomValues(bytes)
+      let code = ''
+      for (let i = 0; i < 8; i++) {
+        code += chars[bytes[i] % chars.length]
+      }
+      document.getElementById('roomCode').value = code
     }
 
     function joinRoom() {
