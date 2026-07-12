@@ -36,6 +36,9 @@ const server = http.createServer((req, res) => {
     const caption = urlObj.searchParams.get('caption') || ''
     const senderId = urlObj.searchParams.get('senderId') || ''
     const token = urlObj.searchParams.get('token') || ''
+    const duration = urlObj.searchParams.get('duration') || ''
+    const position = urlObj.searchParams.get('position') || 'center'
+    const size = urlObj.searchParams.get('size') || 'medium'
 
     // Vérif 1 : l'expéditeur doit être une personne réellement connectée à cette
     // room, avec le bon jeton secret. Sinon on refuse (ferme la route aux inconnus).
@@ -86,7 +89,10 @@ const server = http.createServer((req, res) => {
       const videoUrl = `${SERVER_URL}/video/${videoId}`
       io.to(room).except(senderId).emit('receive-prank', {
         imageUrl: videoUrl,
-        caption: caption
+        caption: caption,
+        duration: duration ? parseInt(duration, 10) : undefined,
+        position: position,
+        size: size
       })
 
       res.writeHead(200, { 'Content-Type': 'application/json' })
@@ -183,7 +189,10 @@ io.on('connection', (socket) => {
 
     socket.to(data.roomCode).emit('receive-prank', {
       imageUrl: data.imageUrl,
-      caption: data.caption
+      caption: data.caption,
+      duration: data.duration,
+      position: data.position,
+      size: data.size
     })
   })
 

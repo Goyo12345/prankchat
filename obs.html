@@ -12,11 +12,16 @@
       height: 100vh;
     }
 
-    #prank-container {
+    /* Le wrapper gère la POSITION à l'écran (déplacé par le JS). */
+    #prank-wrapper {
       position: fixed;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
+    }
+
+    /* Le container gère l'apparition (animation), pas la position. */
+    #prank-container {
       display: none;
       flex-direction: column;
       align-items: center;
@@ -25,20 +30,17 @@
     }
 
     @keyframes popin {
-      from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
-      to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      from { transform: scale(0.5); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
     }
 
-    #prank-image {
-      max-width: 600px;
-      max-height: 500px;
-      border-radius: 16px;
-      box-shadow: 0 0 40px rgba(0,0,0,0.8);
-    }
-
-    #prank-video {
-      width: 640px;
-      height: 360px;
+    /* La taille est imposée par --prank-size (réglée par le JS), avec un plafond
+       de hauteur. object-fit évite toute déformation. */
+    #prank-image, #prank-video {
+      width: var(--prank-size, 46vmin);
+      height: auto;
+      max-height: 80vh;
+      object-fit: contain;
       border-radius: 16px;
       box-shadow: 0 0 40px rgba(0,0,0,0.8);
     }
@@ -54,18 +56,59 @@
   </style>
 </head>
 <body>
-  <div id="prank-container">
-    <img id="prank-image" src="" />
-    <video id="prank-video" style="display:none" autoplay></video>
-    <p id="prank-caption"></p>
+  <div id="prank-wrapper">
+    <div id="prank-container">
+      <img id="prank-image" src="" />
+      <video id="prank-video" style="display:none" autoplay></video>
+      <p id="prank-caption"></p>
+    </div>
   </div>
 
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script>
+    const wrapper = document.getElementById('prank-wrapper')
     const container = document.getElementById('prank-container')
     const img = document.getElementById('prank-image')
     const video = document.getElementById('prank-video')
     const caption = document.getElementById('prank-caption')
+
+    let closeTimer = null
+
+    function closePrank() {
+      clearTimeout(closeTimer)
+      container.style.display = 'none'
+      video.src = ''
+    }
+
+    // Applique la taille choisie (avec un maximum pour ne pas remplir l'écran).
+    function applySize(size) {
+      // Tailles nettement différentes, proportionnelles à l'écran (vmin).
+      const map = { small: '24vmin', medium: '46vmin', large: '78vmin' }
+      container.style.setProperty('--prank-size', map[size] || map.medium)
+    }
+
+    // Place la vanne à l'endroit choisi par l'expéditeur.
+    function applyPosition(pos) {
+      if (pos === 'random') {
+        const all = ['center', 'top', 'bottom', 'left', 'right',
+                     'top-left', 'top-right', 'bottom-left', 'bottom-right']
+        pos = all[Math.floor(Math.random() * all.length)]
+      }
+      const s = wrapper.style
+      s.top = s.bottom = s.left = s.right = 'auto'
+      const M = '5%'
+      switch (pos) {
+        case 'top':          s.top = M;    s.left = '50%'; s.transform = 'translateX(-50%)'; break
+        case 'bottom':       s.bottom = M; s.left = '50%'; s.transform = 'translateX(-50%)'; break
+        case 'left':         s.left = M;   s.top = '50%';  s.transform = 'translateY(-50%)'; break
+        case 'right':        s.right = M;  s.top = '50%';  s.transform = 'translateY(-50%)'; break
+        case 'top-left':     s.top = M;    s.left = M;     s.transform = 'none'; break
+        case 'top-right':    s.top = M;    s.right = M;    s.transform = 'none'; break
+        case 'bottom-left':  s.bottom = M; s.left = M;     s.transform = 'none'; break
+        case 'bottom-right': s.bottom = M; s.right = M;    s.transform = 'none'; break
+        default:             s.top = '50%'; s.left = '50%'; s.transform = 'translate(-50%, -50%)'; break
+      }
+    }
 
     const params = new URLSearchParams(window.location.search)
     const roomCode = params.get('room') || 'obs'
@@ -79,7 +122,13 @@
 
     socket.on('receive-prank', (data) => {
       caption.textContent = data.caption || ''
+      applySize(data.size || 'medium')
+      applyPosition(data.position || 'center')
       container.style.display = 'flex'
+
+      // La durée choisie = limite MAX : on ferme au bout du temps, même une vidéo longue.
+      clearTimeout(closeTimer)
+      closeTimer = setTimeout(closePrank, data.duration || 10000)
 
       if (data.imageUrl && (data.imageUrl.match(/\.(mp4|webm|ogg|mov)(\?|$)/i) ||
           data.imageUrl.includes('catbox.moe') ||
@@ -89,19 +138,15 @@
         video.src = data.imageUrl
         video.play()
 
+        // Si la vidéo est plus courte que la durée, on ferme dès qu'elle se termine.
         video.onended = () => {
-          container.style.display = 'none'
-          video.src = ''
+          closePrank()
         }
       } else {
         video.style.display = 'none'
         video.src = ''
         img.style.display = 'block'
         img.src = data.imageUrl
-
-        setTimeout(() => {
-          container.style.display = 'none'
-        }, 5000)
       }
     })
   </script>

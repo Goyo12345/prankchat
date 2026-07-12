@@ -45,6 +45,11 @@ function createOverlay() {
   overlayWindow.loadFile('overlay.html')
 }
 
+// Envoie la vanne à l'overlay (qui reste affiché en permanence, transparent).
+function showOverlay(data) {
+  overlayWindow.webContents.send('show-prank', data)
+}
+
 // Chemin vers yt-dlp.exe (différent selon que l'app est installée ou en dev)
 function getYtdlpPath() {
   return app.isPackaged
@@ -73,7 +78,7 @@ function downloadAndPlay(url, data) {
       return
     }
 
-    overlayWindow.webContents.send('show-prank', {
+    showOverlay({
       ...data,
       imageUrl: `file://${tmpFile}`,
       tmpFile: tmpFile
@@ -102,9 +107,12 @@ function downloadAndRelay(data) {
     uploadToServer(tmpFile, data)
 
     // 2) On l'affiche aussi sur notre propre overlay, tout de suite.
-    overlayWindow.webContents.send('show-prank', {
+    showOverlay({
       imageUrl: `file://${tmpFile}`,
       caption: data.caption,
+      duration: data.duration,
+      position: data.position,
+      size: data.size,
       tmpFile: tmpFile
     })
   })
@@ -116,7 +124,10 @@ function uploadToServer(tmpFile, data) {
     `room=${encodeURIComponent(data.roomCode)}` +
     `&caption=${encodeURIComponent(data.caption || '')}` +
     `&senderId=${encodeURIComponent(data.senderId || '')}` +
-    `&token=${encodeURIComponent(data.sendToken || '')}`
+    `&token=${encodeURIComponent(data.sendToken || '')}` +
+    `&duration=${encodeURIComponent(data.duration || '')}` +
+    `&position=${encodeURIComponent(data.position || 'center')}` +
+    `&size=${encodeURIComponent(data.size || 'medium')}`
 
   const options = {
     hostname: SERVER_HOST,
@@ -164,7 +175,7 @@ app.whenReady().then(() => {
 
 ipcMain.on('show-prank', (event, data) => {
   if (isDirectMedia(data.imageUrl)) {
-    overlayWindow.webContents.send('show-prank', data)
+    showOverlay(data)
   } else {
     downloadAndPlay(data.imageUrl, data)
   }

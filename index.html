@@ -53,6 +53,58 @@
       color: #888;
     }
 
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .control-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .control-label {
+      font-size: 1.3rem;
+      width: 26px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .opt-group {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .opt {
+      background: #0f3460;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .opt:hover { background: #14477f; }
+    .opt.active { background: #e94560; font-weight: bold; }
+
+    .pos-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 34px);
+      grid-template-rows: repeat(3, 34px);
+      gap: 4px;
+    }
+
+    .pos-grid .opt {
+      padding: 0;
+      font-size: 1.1rem;
+    }
+
     button {
       background: #e94560;
       color: white;
@@ -108,6 +160,7 @@
       width: auto;
       padding: 12px 20px;
     }
+
   </style>
 </head>
 <body>
@@ -125,6 +178,48 @@
 
     <input type="text" id="imageUrl" placeholder="URL image, GIF, YouTube, TikTok..." />
     <input type="text" id="caption" placeholder="Texte de la vanne (optionnel)" />
+
+    <div class="controls">
+      <div class="control-row">
+        <span class="control-label" title="Durée d'affichage">⏱️</span>
+        <div class="opt-group" id="durationGroup">
+          <button class="opt active" data-value="10000">10s</button>
+          <button class="opt" data-value="20000">20s</button>
+          <button class="opt" data-value="30000">30s</button>
+          <button class="opt" data-value="40000">40s</button>
+          <button class="opt" data-value="50000">50s</button>
+          <button class="opt" data-value="60000">60s</button>
+        </div>
+      </div>
+
+      <div class="control-row">
+        <span class="control-label" title="Taille">🔎</span>
+        <div class="opt-group" id="sizeGroup">
+          <button class="opt" data-value="small">Petit</button>
+          <button class="opt active" data-value="medium">Moyen</button>
+          <button class="opt" data-value="large">Grand</button>
+        </div>
+      </div>
+
+      <div class="control-row">
+        <span class="control-label" title="Position">📍</span>
+        <div class="opt-group" id="positionGroup">
+          <div class="pos-grid">
+            <button class="opt" data-value="top-left" title="Haut-gauche">↖</button>
+            <button class="opt" data-value="top" title="Haut">↑</button>
+            <button class="opt" data-value="top-right" title="Haut-droite">↗</button>
+            <button class="opt" data-value="left" title="Gauche">←</button>
+            <button class="opt active" data-value="center" title="Centre">●</button>
+            <button class="opt" data-value="right" title="Droite">→</button>
+            <button class="opt" data-value="bottom-left" title="Bas-gauche">↙</button>
+            <button class="opt" data-value="bottom" title="Bas">↓</button>
+            <button class="opt" data-value="bottom-right" title="Bas-droite">↘</button>
+          </div>
+          <button class="opt" data-value="random" title="Position aléatoire">🎲</button>
+        </div>
+      </div>
+    </div>
+
     <button id="sendBtn" onclick="sendPrank()">🎯 Envoyer la vanne</button>
   </div>
 
@@ -153,6 +248,21 @@
         code += chars[bytes[i] % chars.length]
       }
       document.getElementById('roomCode').value = code
+    }
+
+    // Boutons d'options (durée, taille, position) : un seul actif par groupe.
+    document.querySelectorAll('.opt-group').forEach((group) => {
+      group.addEventListener('click', (e) => {
+        const btn = e.target.closest('.opt')
+        if (!btn) return
+        group.querySelectorAll('.opt').forEach((b) => b.classList.remove('active'))
+        btn.classList.add('active')
+      })
+    })
+
+    function getOption(groupId) {
+      const active = document.querySelector('#' + groupId + ' .opt.active')
+      return active ? active.dataset.value : null
     }
 
     function joinRoom() {
@@ -199,6 +309,9 @@
 
       const imageUrl = document.getElementById('imageUrl').value
       const caption = document.getElementById('caption').value
+      const duration = parseInt(getOption('durationGroup'), 10)
+      const position = getOption('positionGroup')
+      const size = getOption('sizeGroup')
 
       if (!imageUrl) {
         alert('Mets une URL d\'image ou GIF !')
@@ -218,17 +331,23 @@
           caption,
           roomCode: currentRoom,
           senderId: socket.id,
-          sendToken: mySendToken
+          sendToken: mySendToken,
+          duration,
+          position,
+          size
         })
       } else {
         // Image / GIF / vidéo .mp4 directe : le serveur relaie l'URL telle quelle.
         socket.emit('send-prank', {
           roomCode: currentRoom,
           imageUrl,
-          caption
+          caption,
+          duration,
+          position,
+          size
         })
 
-        ipcRenderer.send('show-prank', { imageUrl, caption })
+        ipcRenderer.send('show-prank', { imageUrl, caption, duration, position, size })
       }
 
       setTimeout(() => {
