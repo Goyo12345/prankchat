@@ -136,7 +136,14 @@
         img.style.display = 'none'
         video.style.display = 'block'
         video.src = data.imageUrl
-        video.play()
+        video.muted = false
+        // Dans un vrai OBS, l'autoplay AVEC son est autorisé. Dans un onglet de
+        // navigateur normal il est bloqué tant qu'on n'a pas cliqué la page :
+        // on retente alors en muet, juste pour pouvoir tester la vidéo.
+        video.play().catch(() => {
+          video.muted = true
+          video.play().catch(() => {})
+        })
 
         // Si la vidéo est plus courte que la durée, on ferme dès qu'elle se termine.
         video.onended = () => {

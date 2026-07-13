@@ -3,6 +3,7 @@ const { Server } = require('socket.io')
 const fs = require('fs')
 const path = require('path')
 const crypto = require('crypto')
+const os = require('os')
 
 // L'URL publique de ton serveur Railway (sert à construire les liens vidéo)
 const SERVER_URL = 'https://prankchat-production.up.railway.app'
@@ -10,9 +11,25 @@ const SERVER_URL = 'https://prankchat-production.up.railway.app'
 // Taille max acceptée pour une vidéo envoyée (60 Mo). Au-delà, on refuse.
 const MAX_UPLOAD = 60 * 1024 * 1024
 
-// Les vidéos sont gardées en mémoire quelques minutes,
-// juste le temps qu'OBS et l'ami les lisent.
-const videoCache = {}
+// Les vidéos sont écrites sur le DISQUE (plus dans la RAM) le temps qu'OBS et
+// l'ami les lisent, puis supprimées. Ça évite de saturer la mémoire du serveur.
+const VIDEO_DIR = path.join(os.tmpdir(), 'prankchat_videos')
+
+// Au démarrage : on crée le dossier et on efface d'éventuelles vidéos restantes.
+try {
+  fs.mkdirSync(VIDEO_DIR, { recursive: true })
+  for (const f of fs.readdirSync(VIDEO_DIR)) {
+    fs.unlinkSync(path.join(VIDEO_DIR, f))
+  }
+} catch (e) {
+  console.error('Erreur préparation dossier vidéos:', e)
+}
+
+// Un identifiant de vidéo valide ressemble à "video_1699999999999.mp4".
+// On le vérifie pour empêcher qu'on lise un autre fichier du serveur (sécurité).
+function safeVideoId(id) {
+  return /^video_\d+\.mp4$/.test(id) ? id : null
+}
 
 // Pour chaque personne connectée : dans quelle room elle est + son jeton secret.
 // (En mémoire : ça se recrée tout seul quand les gens se reconnectent.)
@@ -56,32 +73,40 @@ const server = http.createServer((req, res) => {
       return
     }
 
-    // On récupère les octets de la vidéo, en refusant si c'est trop gros.
-    const chunks = []
+    // On écrit la vidéo directement sur le disque, au fil de l'eau (sans jamais
+    // charger le fichier entier en mémoire), en refusant si ça dépasse le max.
+    const videoId = `video_${Date.now()}.mp4`
+    const filePath = path.join(VIDEO_DIR, videoId)
+    const writeStream = fs.createWriteStream(filePath)
     let total = 0
-    let tooBig = false
+    let aborted = false
+
+    function abort(code, message) {
+      if (aborted) return
+      aborted = true
+      req.destroy()
+      writeStream.destroy()
+      fs.unlink(filePath, () => {})
+      res.writeHead(code)
+      res.end(message)
+    }
+
     req.on('data', (chunk) => {
       total += chunk.length
-      if (total > MAX_UPLOAD) {
-        tooBig = true
-        res.writeHead(413)
-        res.end('vidéo trop lourde')
-        req.destroy()
-        return
-      }
-      chunks.push(chunk)
+      if (total > MAX_UPLOAD) abort(413, 'vidéo trop lourde')
     })
-    req.on('end', () => {
-      if (tooBig) return
-      const buffer = Buffer.concat(chunks)
-      const videoId = `video_${Date.now()}.mp4`
-      videoCache[videoId] = buffer
-      console.log(`Vidéo reçue (${(buffer.length / 1024 / 1024).toFixed(1)} Mo) -> ${videoId}`)
+    req.on('error', () => abort(400, 'erreur reception'))
+    writeStream.on('error', () => abort(500, 'erreur ecriture'))
+    req.pipe(writeStream)
 
-      // On la supprime de la mémoire après 2 minutes
+    writeStream.on('finish', () => {
+      if (aborted) return
+      console.log(`Vidéo reçue (${(total / 1024 / 1024).toFixed(1)} Mo) -> ${videoId}`)
+
+      // On supprime le fichier du disque après 2 minutes.
       setTimeout(() => {
-        delete videoCache[videoId]
-        console.log('Vidéo supprimée de la mémoire:', videoId)
+        fs.unlink(filePath, () => {})
+        console.log('Vidéo supprimée du disque:', videoId)
       }, 120000)
 
       // On envoie le lien direct .mp4 à toute la room (OBS + ami),
@@ -101,21 +126,30 @@ const server = http.createServer((req, res) => {
     return
   }
 
-  // 2) OBS (ou l'ami) lit une vidéo gardée en mémoire
+  // 2) OBS (ou l'ami) lit une vidéo depuis le disque
   if (req.url.startsWith('/video/')) {
-    const videoId = req.url.replace('/video/', '')
-    console.log('Cherche vidéo en mémoire:', videoId)
-
-    if (videoCache[videoId]) {
-      res.writeHead(200, {
-        'Content-Type': 'video/mp4',
-        'Access-Control-Allow-Origin': '*'
-      })
-      res.end(videoCache[videoId])
-    } else {
+    const videoId = safeVideoId(req.url.replace('/video/', ''))
+    if (!videoId) {
       res.writeHead(404)
       res.end('Not found')
+      return
     }
+
+    const filePath = path.join(VIDEO_DIR, videoId)
+    fs.stat(filePath, (err, stats) => {
+      if (err) {
+        res.writeHead(404)
+        res.end('Not found')
+        return
+      }
+      res.writeHead(200, {
+        'Content-Type': 'video/mp4',
+        'Content-Length': stats.size,
+        'Access-Control-Allow-Origin': '*'
+      })
+      // On envoie le fichier au fil de l'eau (pas chargé entièrement en RAM).
+      fs.createReadStream(filePath).pipe(res)
+    })
     return
   }
 
