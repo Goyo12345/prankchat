@@ -30,6 +30,7 @@
       "index.html",
       "overlay.html",
       "obs.html",
+      "config.js",
       "package.json",
       "node_modules/**/*"
     ]
@@ -38,6 +39,7 @@
   "author": "Mirco",
   "license": "ISC",
   "dependencies": {
+    "@supabase/supabase-js": "^2.110.3",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3"
   },

@@ -31,6 +31,36 @@ function safeVideoId(id) {
   return /^video_\d+\.mp4$/.test(id) ? id : null
 }
 
+// --- Abonnements : on interroge Supabase avec la clé SECRÈTE (service_role) ---
+// Les clés viennent des variables d'environnement de Railway (jamais dans le code).
+const { createClient } = require('@supabase/supabase-js')
+let supabaseAdmin = null
+if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
+  supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY)
+} else {
+  console.warn('⚠️ Supabase non configuré (SUPABASE_URL / SUPABASE_SERVICE_KEY manquants dans Railway).')
+}
+
+// Vérifie si le porteur de ce jeton (access token Supabase) a un abonnement actif.
+async function isSubscribed(accessToken) {
+  if (!supabaseAdmin || !accessToken) return false
+  try {
+    const { data: u, error: e1 } = await supabaseAdmin.auth.getUser(accessToken)
+    if (e1 || !u || !u.user) return false
+    const { data, error } = await supabaseAdmin
+      .from('subscriptions')
+      .select('status, current_period_end')
+      .eq('user_id', u.user.id)
+      .single()
+    if (error || !data || data.status !== 'active') return false
+    if (data.current_period_end && new Date(data.current_period_end) < new Date()) return false
+    return true
+  } catch (e) {
+    console.error('Erreur vérif abonnement:', e)
+    return false
+  }
+}
+
 // Pour chaque personne connectée : dans quelle room elle est + son jeton secret.
 // (En mémoire : ça se recrée tout seul quand les gens se reconnectent.)
 const socketInfo = {}
@@ -46,6 +76,31 @@ function allow(key, maxCount, windowMs) {
 }
 
 const server = http.createServer((req, res) => {
+  // 0) Réponse aux "preflight" CORS (le navigateur vérifie avant un appel cross-origine)
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'authorization, content-type'
+    })
+    res.end()
+    return
+  }
+
+  // L'app demande : "l'utilisateur connecté a-t-il un abonnement actif ?"
+  if (req.url === '/access') {
+    const auth = req.headers['authorization'] || ''
+    const token = auth.replace('Bearer ', '')
+    isSubscribed(token).then((subscribed) => {
+      res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      })
+      res.end(JSON.stringify({ subscribed }))
+    })
+    return
+  }
+
   // 1) L'app de l'expéditeur nous envoie une vidéo déjà téléchargée sur son PC
   if (req.method === 'POST' && req.url.startsWith('/upload')) {
     const urlObj = new URL(req.url, 'http://localhost')
