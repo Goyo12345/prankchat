@@ -61,6 +61,67 @@ async function isSubscribed(accessToken) {
   }
 }
 
+// --- Stripe : page de paiement (Checkout) + webhook qui active l'abonnement ---
+const STRIPE_PRICE_ID = process.env.STRIPE_PRICE_ID || 'price_1Tt8QN2FMWAw3IEjWY4r1rHB'
+let stripe = null
+if (process.env.STRIPE_SECRET_KEY) {
+  stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
+} else {
+  console.warn('⚠️ Stripe non configuré (STRIPE_SECRET_KEY manquant dans Railway).')
+}
+
+// Crée une page de paiement Stripe pour l'utilisateur connecté, renvoie son URL.
+async function createCheckout(accessToken) {
+  if (!stripe || !supabaseAdmin || !accessToken) return null
+  const { data: u, error } = await supabaseAdmin.auth.getUser(accessToken)
+  if (error || !u || !u.user) return null
+  const session = await stripe.checkout.sessions.create({
+    mode: 'subscription',
+    line_items: [{ price: STRIPE_PRICE_ID, quantity: 1 }],
+    client_reference_id: u.user.id,
+    customer_email: u.user.email,
+    success_url: `${SERVER_URL}/paiement-ok`,
+    cancel_url: `${SERVER_URL}/paiement-annule`
+  })
+  return session.url
+}
+
+// Reçoit les événements Stripe et met à jour le statut d'abonnement en base.
+async function handleStripeEvent(event) {
+  if (!supabaseAdmin) return
+
+  if (event.type === 'checkout.session.completed') {
+    const s = event.data.object
+    let periodEnd = null
+    if (s.subscription) {
+      const sub = await stripe.subscriptions.retrieve(s.subscription)
+      if (sub.current_period_end) periodEnd = new Date(sub.current_period_end * 1000).toISOString()
+    }
+    await supabaseAdmin.from('subscriptions').update({
+      status: 'active',
+      stripe_customer_id: s.customer,
+      current_period_end: periodEnd,
+      updated_at: new Date().toISOString()
+    }).eq('user_id', s.client_reference_id)
+    console.log('Abonnement activé pour', s.client_reference_id)
+
+  } else if (event.type === 'customer.subscription.updated' || event.type === 'customer.subscription.deleted') {
+    const sub = event.data.object
+    let ourStatus = 'canceled'
+    if (event.type !== 'customer.subscription.deleted') {
+      if (sub.status === 'active' || sub.status === 'trialing') ourStatus = 'active'
+      else if (sub.status === 'past_due' || sub.status === 'unpaid') ourStatus = 'past_due'
+    }
+    const periodEnd = sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null
+    await supabaseAdmin.from('subscriptions').update({
+      status: ourStatus,
+      current_period_end: periodEnd,
+      updated_at: new Date().toISOString()
+    }).eq('stripe_customer_id', sub.customer)
+    console.log('Abonnement mis à jour (', ourStatus, ') pour client', sub.customer)
+  }
+}
+
 // Pour chaque personne connectée : dans quelle room elle est + son jeton secret.
 // (En mémoire : ça se recrée tout seul quand les gens se reconnectent.)
 const socketInfo = {}
@@ -98,6 +159,63 @@ const server = http.createServer((req, res) => {
       })
       res.end(JSON.stringify({ subscribed }))
     })
+    return
+  }
+
+  // L'app demande à démarrer un paiement -> on renvoie l'URL de la page Stripe
+  if (req.method === 'POST' && req.url === '/create-checkout') {
+    const auth = req.headers['authorization'] || ''
+    const token = auth.replace('Bearer ', '')
+    createCheckout(token).then((url) => {
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' })
+      res.end(JSON.stringify({ url }))
+    }).catch((e) => {
+      console.error('Erreur create-checkout:', e)
+      res.writeHead(500, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' })
+      res.end(JSON.stringify({ url: null }))
+    })
+    return
+  }
+
+  // Stripe nous prévient (paiement réussi, renouvellement, annulation...)
+  if (req.method === 'POST' && req.url === '/webhook') {
+    if (!stripe || !process.env.STRIPE_WEBHOOK_SECRET) {
+      res.writeHead(500)
+      res.end('stripe non configuré')
+      return
+    }
+    const chunks = []
+    req.on('data', (c) => chunks.push(c))
+    req.on('end', () => {
+      let event
+      try {
+        event = stripe.webhooks.constructEvent(
+          Buffer.concat(chunks),
+          req.headers['stripe-signature'],
+          process.env.STRIPE_WEBHOOK_SECRET
+        )
+      } catch (e) {
+        console.error('Webhook signature invalide:', e.message)
+        res.writeHead(400)
+        res.end('signature invalide')
+        return
+      }
+      handleStripeEvent(event)
+        .then(() => { res.writeHead(200); res.end('ok') })
+        .catch((e) => { console.error('Erreur webhook:', e); res.writeHead(200); res.end('ok') })
+    })
+    return
+  }
+
+  // Petites pages affichées dans le navigateur après le paiement
+  if (req.url === '/paiement-ok') {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+    res.end('<h1 style="font-family:sans-serif;text-align:center;margin-top:20vh">✅ Paiement réussi !<br>Retourne dans PrankChat et clique « J\'ai payé ».</h1>')
+    return
+  }
+  if (req.url === '/paiement-annule') {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+    res.end('<h1 style="font-family:sans-serif;text-align:center;margin-top:20vh">Paiement annulé.<br>Tu peux fermer cette page.</h1>')
     return
   }
 

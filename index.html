@@ -269,6 +269,7 @@
       🔒 Pour envoyer des vannes, il te faut un <b>abonnement actif</b>.
     </p>
     <button onclick="startSubscription()">✨ S'abonner</button>
+    <button class="auth-secondary" onclick="recheckAccess()">🔄 J'ai payé, vérifier</button>
   </div>
 
   <script src="config.js"></script>
@@ -360,8 +361,29 @@
       document.getElementById('authCard').style.display = 'flex'
     }
 
-    function startSubscription() {
-      alert('Le paiement arrive à la prochaine étape (Phase 3, Stripe) !\nPour l\'instant, on teste juste le blocage.')
+    async function startSubscription() {
+      const { data } = await supabase.auth.getSession()
+      if (!data.session) return
+      try {
+        const res = await fetch(SERVER + '/create-checkout', {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + data.session.access_token }
+        })
+        const { url } = await res.json()
+        if (url) {
+          require('electron').shell.openExternal(url) // ouvre la page de paiement dans le navigateur
+        } else {
+          alert('Impossible de démarrer le paiement pour le moment. Réessaie dans un instant.')
+        }
+      } catch (e) {
+        alert('Erreur : ' + e.message)
+      }
+    }
+
+    // Après le paiement, l'utilisateur revient et clique "J'ai payé" -> on re-vérifie.
+    async function recheckAccess() {
+      const { data } = await supabase.auth.getSession()
+      if (data.session) enterApp(data.session)
     }
 
     async function signUp() {
