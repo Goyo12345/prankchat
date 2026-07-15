@@ -86,6 +86,24 @@ async function createCheckout(accessToken) {
   return session.url
 }
 
+// Crée un lien vers le "portail client" Stripe (voir / modifier / ANNULER l'abo).
+async function createPortal(accessToken) {
+  if (!stripe || !supabaseAdmin || !accessToken) return null
+  const { data: u, error } = await supabaseAdmin.auth.getUser(accessToken)
+  if (error || !u || !u.user) return null
+  const { data, error: e2 } = await supabaseAdmin
+    .from('subscriptions')
+    .select('stripe_customer_id')
+    .eq('user_id', u.user.id)
+    .single()
+  if (e2 || !data || !data.stripe_customer_id) return null
+  const session = await stripe.billingPortal.sessions.create({
+    customer: data.stripe_customer_id,
+    return_url: `${SERVER_URL}/portail-retour`
+  })
+  return session.url
+}
+
 // Reçoit les événements Stripe et met à jour le statut d'abonnement en base.
 async function handleStripeEvent(event) {
   if (!supabaseAdmin) return
@@ -209,6 +227,21 @@ const server = http.createServer((req, res) => {
     return
   }
 
+  // L'app demande le lien du portail client Stripe (gérer / annuler l'abo)
+  if (req.method === 'POST' && req.url === '/portal') {
+    const auth = req.headers['authorization'] || ''
+    const token = auth.replace('Bearer ', '')
+    createPortal(token).then((url) => {
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' })
+      res.end(JSON.stringify({ url }))
+    }).catch((e) => {
+      console.error('Erreur portal:', e)
+      res.writeHead(500, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' })
+      res.end(JSON.stringify({ url: null }))
+    })
+    return
+  }
+
   // Stripe nous prévient (paiement réussi, renouvellement, annulation...)
   if (req.method === 'POST' && req.url === '/webhook') {
     if (!stripe || !process.env.STRIPE_WEBHOOK_SECRET) {
@@ -248,6 +281,11 @@ const server = http.createServer((req, res) => {
   if (req.url === '/paiement-annule') {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
     res.end('<h1 style="font-family:sans-serif;text-align:center;margin-top:20vh">Paiement annulé.<br>Tu peux fermer cette page.</h1>')
+    return
+  }
+  if (req.url === '/portail-retour') {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+    res.end('<h1 style="font-family:sans-serif;text-align:center;margin-top:20vh">✅ C\'est noté !<br>Tu peux fermer cette page et retourner dans PrankChat.</h1>')
     return
   }
 

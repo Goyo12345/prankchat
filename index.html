@@ -201,7 +201,10 @@
   <div class="card" id="appCard" style="display:none">
     <div class="user-bar">
       <span>👤 <span id="userEmail"></span></span>
-      <button onclick="logOut()">Déconnexion</button>
+      <span>
+        <button onclick="manageSubscription()">Gérer l'abo</button>
+        <button onclick="logOut()">Déconnexion</button>
+      </span>
     </div>
 
     <div class="room-section">
@@ -384,6 +387,26 @@
     async function recheckAccess() {
       const { data } = await supabase.auth.getSession()
       if (data.session) enterApp(data.session)
+    }
+
+    // Ouvre le portail Stripe pour gérer / annuler son abonnement.
+    async function manageSubscription() {
+      const { data } = await supabase.auth.getSession()
+      if (!data.session) return
+      try {
+        const res = await fetch(SERVER + '/portal', {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + data.session.access_token }
+        })
+        const { url } = await res.json()
+        if (url) {
+          require('electron').shell.openExternal(url)
+        } else {
+          alert('Impossible d\'ouvrir la gestion de l\'abonnement pour le moment.')
+        }
+      } catch (e) {
+        alert('Erreur : ' + e.message)
+      }
     }
 
     async function signUp() {
