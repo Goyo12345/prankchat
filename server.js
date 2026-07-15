@@ -417,6 +417,24 @@ const server = http.createServer((req, res) => {
     return
   }
 
+  // Site vitrine : page d'accueil + CGU (sert aussi pour la validation Stripe)
+  if (req.url === '/' || req.url === '/index.html') {
+    fs.readFile(path.join(__dirname, 'landing.html'), (err, data) => {
+      if (err) { res.writeHead(500); res.end('Erreur'); return }
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+      res.end(data)
+    })
+    return
+  }
+  if (req.url === '/cgu') {
+    fs.readFile(path.join(__dirname, 'cgu.html'), (err, data) => {
+      if (err) { res.writeHead(500); res.end('Erreur'); return }
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+      res.end(data)
+    })
+    return
+  }
+
   res.writeHead(200)
   res.end('PrankChat server running')
 })

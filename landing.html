@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PrankChat — Envoie des vannes en temps réel</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #1a1a2e; --card: #16213e; --accent: #e94560; --accent2: #c73652;
+      --text: #f2f2f7; --muted: #a0a0b0; --field: #0f3460;
+    }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif; line-height: 1.6;
+    }
+    a { color: var(--accent); }
+    .wrap { max-width: 900px; margin: 0 auto; padding: 0 20px; }
+
+    header { text-align: center; padding: 70px 20px 50px; }
+    header h1 { font-size: 3rem; color: var(--accent); }
+    header p { color: var(--muted); font-size: 1.25rem; margin-top: 12px; }
+    .cta {
+      display: inline-block; margin-top: 28px; background: var(--accent);
+      color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 12px;
+      font-weight: bold; font-size: 1.05rem; transition: background .2s;
+    }
+    .cta:hover { background: var(--accent2); color: #fff; }
+
+    section { padding: 40px 0; }
+    h2 { font-size: 1.7rem; margin-bottom: 24px; text-align: center; }
+
+    .steps, .feats { display: grid; gap: 18px; grid-template-columns: repeat(3, 1fr); }
+    .box { background: var(--card); border-radius: 16px; padding: 24px; }
+    .box .num { color: var(--accent); font-weight: bold; font-size: 1.1rem; }
+    .box h3 { margin: 8px 0; font-size: 1.1rem; }
+    .box p { color: var(--muted); font-size: .95rem; }
+
+    .price-card {
+      background: var(--card); border: 2px solid var(--accent); border-radius: 20px;
+      padding: 36px; text-align: center; max-width: 380px; margin: 0 auto;
+    }
+    .price { font-size: 2.6rem; font-weight: bold; }
+    .price span { font-size: 1rem; color: var(--muted); font-weight: normal; }
+    .price-card ul { list-style: none; margin: 20px 0; text-align: left; }
+    .price-card li { padding: 6px 0; color: var(--muted); }
+    .price-card li::before { content: "✓ "; color: #4caf50; font-weight: bold; }
+
+    footer {
+      border-top: 1px solid #2a2a44; margin-top: 40px; padding: 30px 0 50px;
+      text-align: center; color: var(--muted); font-size: .9rem;
+    }
+    footer a { margin: 0 8px; }
+
+    @media (max-width: 640px) {
+      header h1 { font-size: 2.2rem; }
+      .steps, .feats { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>💥 PrankChat</h1>
+      <p>Envoie des vannes en temps réel sur l'écran de tes amis et de tes streamers préférés.</p>
+      <a class="cta" href="#tarif">Voir l'abonnement</a>
+    </div>
+  </header>
+
+  <section id="comment">
+    <div class="wrap">
+      <h2>Comment ça marche</h2>
+      <div class="steps">
+        <div class="box">
+          <div class="num">1</div>
+          <h3>Crée ton compte</h3>
+          <p>Inscris-toi dans l'application de bureau, en quelques secondes.</p>
+        </div>
+        <div class="box">
+          <div class="num">2</div>
+          <h3>Abonne-toi</h3>
+          <p>Un abonnement mensuel débloque l'envoi de vannes. Sans engagement.</p>
+        </div>
+        <div class="box">
+          <div class="num">3</div>
+          <h3>Envoie des vannes</h3>
+          <p>Images, GIFs ou vidéos qui s'affichent en surimpression sur l'écran de ton ami, ou dans OBS pour un streamer.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="fonctionnalites">
+    <div class="wrap">
+      <h2>Fonctionnalités</h2>
+      <div class="feats">
+        <div class="box"><h3>🎬 Overlay temps réel</h3><p>Les vannes apparaissent instantanément par-dessus l'écran.</p></div>
+        <div class="box"><h3>📺 Source OBS</h3><p>Une page dédiée pour les streamers, à ajouter comme source navigateur.</p></div>
+        <div class="box"><h3>🎨 Réglages</h3><p>Choisis la durée, la position à l'écran et la taille de chaque vanne.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tarif">
+    <div class="wrap">
+      <h2>Tarif</h2>
+      <div class="price-card">
+        <div class="price">2,99 CHF <span>/ mois</span></div>
+        <ul>
+          <li>Envoi illimité de vannes</li>
+          <li>Overlay temps réel + source OBS</li>
+          <li>Sans engagement, annulable à tout moment</li>
+        </ul>
+        <p style="color:var(--muted); font-size:.9rem;">L'abonnement se gère et s'annule directement depuis l'application.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <p>
+        <a href="/cgu">Conditions d'utilisation</a> ·
+        <a href="mailto:mircoazzi12@gmail.com">Contact : mircoazzi12@gmail.com</a>
+      </p>
+      <p style="margin-top:12px;">© <span id="y"></span> PrankChat — Édité en Suisse.</p>
+    </div>
+  </footer>
+  <script>document.getElementById('y').textContent = new Date().getFullYear()</script>
+</body>
+</html>
