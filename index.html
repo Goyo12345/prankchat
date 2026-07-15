@@ -390,12 +390,23 @@
       const email = document.getElementById('authEmail').value.trim()
       const password = document.getElementById('authPassword').value
       if (!email || !password) { showAuthStatus('Remplis l\'email et le mot de passe.', false); return }
-      const { data, error } = await supabase.auth.signUp({ email, password })
-      if (error) { showAuthStatus(error.message, false); return }
-      if (data.session) {
-        enterApp(data.session) // si la confirmation d'email est désactivée : connecté direct
-      } else {
-        showAuthStatus('Compte créé ! Confirme ton email puis connecte-toi.', true)
+      try {
+        // Le serveur crée le compte (déjà confirmé), puis on se connecte direct.
+        const res = await fetch(SERVER + '/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        })
+        const data = await res.json()
+        if (!res.ok || data.error) {
+          showAuthStatus(data.error || 'Erreur à l\'inscription.', false)
+          return
+        }
+        const { data: loginData, error } = await supabase.auth.signInWithPassword({ email, password })
+        if (error) { showAuthStatus(error.message, false); return }
+        enterApp(loginData.session)
+      } catch (e) {
+        showAuthStatus('Erreur : ' + e.message, false)
       }
     }
 

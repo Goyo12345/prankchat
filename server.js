@@ -162,6 +162,38 @@ const server = http.createServer((req, res) => {
     return
   }
 
+  // Inscription : le serveur crée un compte DÉJÀ confirmé (via la clé service_role),
+  // ce qui évite tout le casse-tête de la confirmation par email.
+  if (req.method === 'POST' && req.url === '/signup') {
+    const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim()
+    if (!allow(`signup_${ip}`, 5, 60000)) {
+      res.writeHead(429, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' })
+      res.end(JSON.stringify({ error: 'Trop de tentatives, réessaie dans une minute.' }))
+      return
+    }
+    const chunks = []
+    req.on('data', (c) => chunks.push(c))
+    req.on('end', async () => {
+      let body = {}
+      try { body = JSON.parse(Buffer.concat(chunks).toString()) } catch (e) {}
+      const email = (body.email || '').trim()
+      const password = body.password || ''
+      const cors = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      if (!supabaseAdmin) {
+        res.writeHead(500, cors); res.end(JSON.stringify({ error: 'Serveur non configuré' })); return
+      }
+      if (!email || password.length < 6) {
+        res.writeHead(400, cors); res.end(JSON.stringify({ error: 'Email ou mot de passe invalide (min. 6 caractères).' })); return
+      }
+      const { error } = await supabaseAdmin.auth.admin.createUser({ email, password, email_confirm: true })
+      if (error) {
+        res.writeHead(400, cors); res.end(JSON.stringify({ error: error.message })); return
+      }
+      res.writeHead(200, cors); res.end(JSON.stringify({ ok: true }))
+    })
+    return
+  }
+
   // L'app demande à démarrer un paiement -> on renvoie l'URL de la page Stripe
   if (req.method === 'POST' && req.url === '/create-checkout') {
     const auth = req.headers['authorization'] || ''
