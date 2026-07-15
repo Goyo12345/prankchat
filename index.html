@@ -419,18 +419,22 @@
       if (data.session) enterApp(data.session)
     })
 
-    function joinRoom() {
+    async function joinRoom() {
       const roomCode = document.getElementById('roomCode').value.trim()
       if (!roomCode) {
         alert('Entre un code de room !')
         return
       }
 
+      // On récupère notre jeton de connexion (il prouve l'abonnement au serveur).
+      const { data: sess } = await supabase.auth.getSession()
+      const accessToken = sess.session ? sess.session.access_token : null
+
       socket = io('https://prankchat-production.up.railway.app')
 
       socket.on('connect', () => {
-        // On rejoint la room et on récupère notre jeton secret d'envoi.
-        socket.emit('join-room', roomCode, (token) => {
+        // On rejoint la room, on présente notre jeton, et on récupère le jeton d'envoi.
+        socket.emit('join-room', roomCode, accessToken, (token) => {
           mySendToken = token
         })
         currentRoom = roomCode

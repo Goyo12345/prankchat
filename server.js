@@ -239,6 +239,13 @@ const server = http.createServer((req, res) => {
       return
     }
 
+    // Vérif 1bis : abonnement actif obligatoire (verrou incontournable côté serveur).
+    if (!info.subscribed) {
+      res.writeHead(403)
+      res.end('abonnement requis')
+      return
+    }
+
     // Vérif 2 : pas plus de 10 vidéos par minute par expéditeur (anti-spam).
     if (!allow(`upload_${senderId}`, 10, 60000)) {
       res.writeHead(429)
@@ -356,7 +363,7 @@ const rooms = {}
 io.on('connection', (socket) => {
   console.log('Utilisateur connecté:', socket.id)
 
-  socket.on('join-room', (roomCode, callback) => {
+  socket.on('join-room', async (roomCode, accessToken, callback) => {
     // Anti-devinette : max 60 tentatives de connexion par minute et par adresse,
     // pour empêcher quelqu'un d'essayer des milliers de codes à la chaîne.
     const ip = (socket.handshake.headers['x-forwarded-for'] || socket.handshake.address || '')
@@ -368,9 +375,11 @@ io.on('connection', (socket) => {
       return
     }
 
-    // On génère un jeton secret unique pour cette personne dans cette room.
+    // On génère un jeton secret unique pour cette personne dans cette room,
+    // et on vérifie SON abonnement une seule fois (réutilisé à chaque envoi).
     const token = crypto.randomBytes(16).toString('hex')
-    socketInfo[socket.id] = { room: roomCode, token: token }
+    const subscribed = await isSubscribed(accessToken)
+    socketInfo[socket.id] = { room: roomCode, token: token, subscribed: subscribed }
 
     socket.join(roomCode)
     rooms[roomCode] = rooms[roomCode] || []
@@ -391,6 +400,8 @@ io.on('connection', (socket) => {
     const info = socketInfo[socket.id]
     // On n'accepte que si la personne est bien dans la room qu'elle vise...
     if (!info || info.room !== data.roomCode) return
+    // ...si elle a un abonnement actif (verrou incontournable côté serveur)...
+    if (!info.subscribed) return
     // ...et pas plus de 15 vannes par minute (anti-spam).
     if (!allow(`prank_${socket.id}`, 15, 60000)) return
 
