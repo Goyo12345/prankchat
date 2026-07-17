@@ -180,6 +180,39 @@ const server = http.createServer((req, res) => {
     return
   }
 
+  // TEMPORAIRE (à retirer après) : crée le produit + prix via la clé du serveur.
+  // Comme le serveur utilise STRIPE_SECRET_KEY, le résultat est dans le MÊME mode
+  // que cette clé (live si sk_live). On renvoie aussi le mode pour être 100% sûr.
+  if (req.url.startsWith('/setup-live-product')) {
+    const u = new URL(req.url, 'http://localhost')
+    if (u.searchParams.get('secret') !== 'prankchat-live-2026') {
+      res.writeHead(403)
+      res.end('non autorise')
+      return
+    }
+    if (!stripe) {
+      res.writeHead(500)
+      res.end('stripe non configure')
+      return
+    }
+    const mode = (process.env.STRIPE_SECRET_KEY || '').startsWith('sk_live') ? 'LIVE' : 'TEST'
+    ;(async () => {
+      const product = await stripe.products.create({ name: 'PrankChat Premium' })
+      const price = await stripe.prices.create({
+        product: product.id,
+        unit_amount: 299,
+        currency: 'chf',
+        recurring: { interval: 'month' }
+      })
+      res.writeHead(200, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ mode: mode, product_id: product.id, price_id: price.id }, null, 2))
+    })().catch((e) => {
+      res.writeHead(500)
+      res.end('Erreur: ' + e.message)
+    })
+    return
+  }
+
   // Inscription : le serveur crée un compte DÉJÀ confirmé (via la clé service_role),
   // ce qui évite tout le casse-tête de la confirmation par email.
   if (req.method === 'POST' && req.url === '/signup') {
