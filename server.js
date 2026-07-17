@@ -213,6 +213,40 @@ const server = http.createServer((req, res) => {
     return
   }
 
+  // TEMPORAIRE (à retirer après) : crée le webhook via la clé du serveur et
+  // renvoie son secret (whsec). Comme c'est un SECRET, c'est l'utilisateur qui
+  // ouvre ce lien et copie le résultat (le serveur ne le loggue pas).
+  if (req.url.startsWith('/setup-live-webhook')) {
+    const u = new URL(req.url, 'http://localhost')
+    if (u.searchParams.get('secret') !== 'prankchat-live-2026') {
+      res.writeHead(403)
+      res.end('non autorise')
+      return
+    }
+    if (!stripe) {
+      res.writeHead(500)
+      res.end('stripe non configure')
+      return
+    }
+    const mode = (process.env.STRIPE_SECRET_KEY || '').startsWith('sk_live') ? 'LIVE' : 'TEST'
+    ;(async () => {
+      const wh = await stripe.webhookEndpoints.create({
+        url: `${SERVER_URL}/webhook`,
+        enabled_events: [
+          'checkout.session.completed',
+          'customer.subscription.updated',
+          'customer.subscription.deleted'
+        ]
+      })
+      res.writeHead(200, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ mode: mode, webhook_secret: wh.secret }, null, 2))
+    })().catch((e) => {
+      res.writeHead(500)
+      res.end('Erreur: ' + e.message)
+    })
+    return
+  }
+
   // Inscription : le serveur crée un compte DÉJÀ confirmé (via la clé service_role),
   // ce qui évite tout le casse-tête de la confirmation par email.
   if (req.method === 'POST' && req.url === '/signup') {
