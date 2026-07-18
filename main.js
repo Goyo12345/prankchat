@@ -142,7 +142,13 @@ function uploadToServer(tmpFile, data) {
   const req = https.request(options, (res) => {
     let body = ''
     res.on('data', (c) => (body += c))
-    res.on('end', () => console.log('Vidéo envoyée au serveur:', body))
+    res.on('end', () => {
+      console.log('Vidéo envoyée au serveur:', res.statusCode, body)
+      // Freemium : le serveur a refusé (quota gratuit du jour épuisé) -> on prévient l'app.
+      if (res.statusCode === 402 && mainWindow) {
+        mainWindow.webContents.send('prank-limit-reached')
+      }
+    })
   })
   req.on('error', (e) => console.error('Erreur envoi serveur:', e))
   req.write(fileData)

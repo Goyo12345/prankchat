@@ -202,7 +202,8 @@
     <div class="user-bar">
       <span>👤 <span id="userEmail"></span></span>
       <span>
-        <button onclick="manageSubscription()">Gérer l'abo</button>
+        <button id="premiumBtn" onclick="startSubscription()" style="display:none">✨ Passer Premium</button>
+        <button id="manageBtn" onclick="manageSubscription()" style="display:none">Gérer l'abo</button>
         <button onclick="logOut()">Déconnexion</button>
       </span>
     </div>
@@ -214,6 +215,9 @@
     </div>
 
     <div class="status deconnecte" id="status">❌ Non connecté</div>
+
+    <!-- Freemium : compteur de pranks gratuits du jour (caché pour les abonnés) -->
+    <div class="status" id="quotaBar" style="display:none"></div>
 
     <input type="text" id="imageUrl" placeholder="URL image, GIF, YouTube, TikTok..." />
     <input type="text" id="caption" placeholder="Texte de la vanne (optionnel)" />
@@ -259,6 +263,13 @@
       </div>
     </div>
 
+    <!-- Freemium : invitation à passer Premium quand les 5 pranks du jour sont épuisés -->
+    <div id="upsellBox" style="display:none; text-align:center; background:#2a1a2e; border:1px solid #e94560; border-radius:12px; padding:14px; margin-bottom:10px;">
+      <p style="margin:0 0 10px; line-height:1.4;">🔥 Tu as utilisé tes 5 pranks gratuits du jour !<br>Passe en <b>Premium</b> pour des pranks illimités.</p>
+      <button onclick="startSubscription()">✨ Passer en illimité — 2.99 CHF/mois</button>
+      <button class="auth-secondary" onclick="recheckAccess()">🔄 J'ai payé, vérifier</button>
+    </div>
+
     <button id="sendBtn" onclick="sendPrank()">🎯 Envoyer la vanne</button>
   </div>
 
@@ -286,6 +297,37 @@
     let socket = null
     let currentRoom = null
     let mySendToken = null
+
+    // Freemium : abonné = illimité ; sinon 5 pranks gratuits par jour.
+    const FREE_LIMIT = 5
+    let mySubscribed = false
+    let myRemaining = FREE_LIMIT // pranks gratuits restants (le serveur fait foi, il nous le dit)
+
+    // Met à jour l'affichage Premium : bouton du haut, compteur, message d'invitation.
+    function updatePremiumUI(subscribed, remaining) {
+      mySubscribed = subscribed
+      document.getElementById('premiumBtn').style.display = subscribed ? 'none' : ''
+      document.getElementById('manageBtn').style.display = subscribed ? '' : 'none'
+
+      const quotaBar = document.getElementById('quotaBar')
+      const upsell = document.getElementById('upsellBox')
+
+      if (subscribed) {
+        quotaBar.style.display = 'none'
+        upsell.style.display = 'none'
+        return
+      }
+
+      if (typeof remaining === 'number') {
+        myRemaining = remaining
+        quotaBar.style.display = 'block'
+        quotaBar.className = 'status ' + (remaining > 0 ? 'attente' : 'deconnecte')
+        quotaBar.textContent = remaining > 0
+          ? '🎁 Pranks gratuits aujourd\'hui : ' + remaining + '/' + FREE_LIMIT
+          : '🚫 Plus de pranks gratuits aujourd\'hui'
+        upsell.style.display = remaining > 0 ? 'none' : 'block'
+      }
+    }
 
     function isYoutubeOrTiktok(url) {
       return url.includes('youtube.com') ||
@@ -349,13 +391,11 @@
         console.error('Vérif abonnement échouée:', e)
       }
 
-      if (subscribed) {
-        document.getElementById('subscribeCard').style.display = 'none'
-        document.getElementById('appCard').style.display = 'flex'
-      } else {
-        document.getElementById('appCard').style.display = 'none'
-        document.getElementById('subscribeCard').style.display = 'flex'
-      }
+      // Freemium : tout le monde entre dans l'app. L'abonnement débloque l'illimité ;
+      // sinon on affiche le compteur "X/5" (mis à jour par le serveur en rejoignant une room).
+      document.getElementById('subscribeCard').style.display = 'none'
+      document.getElementById('appCard').style.display = 'flex'
+      updatePremiumUI(subscribed, subscribed ? null : FREE_LIMIT)
     }
 
     function showLogin() {
@@ -491,6 +531,15 @@
       socket.on('receive-prank', (data) => {
         ipcRenderer.send('show-prank', data)
       })
+
+      // Freemium : le serveur nous dit combien de pranks gratuits il nous reste.
+      socket.on('quota', (q) => {
+        updatePremiumUI(q.subscribed, q.remaining)
+      })
+      // Le serveur a refusé l'envoi : quota du jour épuisé -> on propose Premium.
+      socket.on('limit-reached', () => {
+        updatePremiumUI(false, 0)
+      })
     }
 
     function sendPrank() {
@@ -507,6 +556,13 @@
 
       if (!imageUrl) {
         alert('Mets une URL d\'image ou GIF !')
+        return
+      }
+
+      // Freemium : si le quota gratuit du jour est épuisé, on n'envoie rien et on
+      // affiche l'invitation à passer Premium (le serveur bloque aussi, par sécurité).
+      if (!mySubscribed && myRemaining <= 0) {
+        updatePremiumUI(false, 0)
         return
       }
 
@@ -548,6 +604,12 @@
         btn.style.background = '#e94560'
       }, 8000)
     }
+
+    // Freemium : l'envoi d'une vidéo YouTube/TikTok a été refusé par le serveur
+    // (quota du jour épuisé) -> on propose Premium.
+    ipcRenderer.on('prank-limit-reached', () => {
+      updatePremiumUI(false, 0)
+    })
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {

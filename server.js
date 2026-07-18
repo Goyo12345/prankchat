@@ -61,6 +61,31 @@ async function isSubscribed(accessToken) {
   }
 }
 
+// Renvoie l'identifiant de l'utilisateur ET s'il est abonné, en UN SEUL appel.
+// (Utilisé au moment de rejoindre une room : on a besoin de l'userId pour compter
+//  les pranks gratuits du jour, en plus de savoir s'il est abonné.)
+async function getAccess(accessToken) {
+  if (!supabaseAdmin || !accessToken) return { userId: null, subscribed: false }
+  try {
+    const { data: u, error: e1 } = await supabaseAdmin.auth.getUser(accessToken)
+    if (e1 || !u || !u.user) return { userId: null, subscribed: false }
+    const userId = u.user.id
+    const { data, error } = await supabaseAdmin
+      .from('subscriptions')
+      .select('status, current_period_end')
+      .eq('user_id', userId)
+      .single()
+    let subscribed = false
+    if (!error && data && data.status === 'active') {
+      subscribed = !(data.current_period_end && new Date(data.current_period_end) < new Date())
+    }
+    return { userId, subscribed }
+  } catch (e) {
+    console.error('Erreur vérif accès:', e)
+    return { userId: null, subscribed: false }
+  }
+}
+
 // --- Stripe : page de paiement (Checkout) + webhook qui active l'abonnement ---
 const STRIPE_PRICE_ID = process.env.STRIPE_PRICE_ID || 'price_1Tt8QN2FMWAw3IEjWY4r1rHB'
 let stripe = null
@@ -151,6 +176,39 @@ function allow(key, maxCount, windowMs) {
   actionTimes[key] = (actionTimes[key] || []).filter((t) => now - t < windowMs)
   if (actionTimes[key].length >= maxCount) return false
   actionTimes[key].push(now)
+  return true
+}
+
+// --- Freemium : 5 pranks gratuits par jour, puis abonnement pour l'illimité ---
+const FREE_DAILY_LIMIT = 5
+// userId -> { date: 'AAAA-MM-JJ', count: n }. En MÉMOIRE : le compteur se remet à
+// zéro si le serveur Railway redémarre (acceptable au lancement ; on pourra le
+// passer en base Supabase plus tard si des gens en abusent).
+const dailyCount = {}
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10)
+}
+
+// Combien de pranks gratuits il reste aujourd'hui pour cet utilisateur.
+function freeRemaining(userId) {
+  if (!userId) return 0
+  const rec = dailyCount[userId]
+  if (!rec || rec.date !== todayStr()) return FREE_DAILY_LIMIT
+  return Math.max(0, FREE_DAILY_LIMIT - rec.count)
+}
+
+// Consomme 1 prank gratuit. Renvoie true si OK, false si la limite est atteinte.
+function consumeFree(userId) {
+  if (!userId) return false
+  const today = todayStr()
+  const rec = dailyCount[userId]
+  if (!rec || rec.date !== today) {
+    dailyCount[userId] = { date: today, count: 1 }
+    return true
+  }
+  if (rec.count >= FREE_DAILY_LIMIT) return false
+  rec.count++
   return true
 }
 
@@ -309,10 +367,12 @@ const server = http.createServer((req, res) => {
       return
     }
 
-    // Vérif 1bis : abonnement actif obligatoire (verrou incontournable côté serveur).
-    if (!info.subscribed) {
-      res.writeHead(403)
-      res.end('abonnement requis')
+    // Vérif 1bis (freemium) : abonné = illimité ; sinon la vidéo compte dans les
+    // 5 pranks gratuits du jour. On bloque seulement si le quota est déjà épuisé.
+    // (On décomptera vraiment le prank une fois la vidéo bien reçue, plus bas.)
+    if (!info.subscribed && freeRemaining(info.userId) <= 0) {
+      res.writeHead(402)
+      res.end('limite atteinte')
       return
     }
 
@@ -369,6 +429,13 @@ const server = http.createServer((req, res) => {
         position: position,
         size: size
       })
+
+      // Freemium : la vidéo est bien partie -> on décompte 1 prank du jour et on
+      // informe l'expéditeur de son quota restant (pour l'afficher dans l'app).
+      if (!info.subscribed) {
+        consumeFree(info.userId)
+        io.to(senderId).emit('quota', { subscribed: false, remaining: freeRemaining(info.userId) })
+      }
 
       res.writeHead(200, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify({ videoUrl }))
@@ -466,8 +533,8 @@ io.on('connection', (socket) => {
     // On génère un jeton secret unique pour cette personne dans cette room,
     // et on vérifie SON abonnement une seule fois (réutilisé à chaque envoi).
     const token = crypto.randomBytes(16).toString('hex')
-    const subscribed = await isSubscribed(accessToken)
-    socketInfo[socket.id] = { room: roomCode, token: token, subscribed: subscribed }
+    const { userId, subscribed } = await getAccess(accessToken)
+    socketInfo[socket.id] = { room: roomCode, token: token, subscribed: subscribed, userId: userId }
 
     socket.join(roomCode)
     rooms[roomCode] = rooms[roomCode] || []
@@ -476,6 +543,9 @@ io.on('connection', (socket) => {
 
     socket.to(roomCode).emit('friend-connected')
     io.to(roomCode).emit('room-users', rooms[roomCode].length)
+
+    // On indique à l'app son quota du jour : illimité si abonné, sinon X/5.
+    socket.emit('quota', { subscribed: subscribed, remaining: subscribed ? null : freeRemaining(userId) })
 
     // On renvoie le jeton à l'app (elle le présentera pour envoyer une vidéo).
     if (typeof callback === 'function') callback(token)
@@ -488,10 +558,14 @@ io.on('connection', (socket) => {
     const info = socketInfo[socket.id]
     // On n'accepte que si la personne est bien dans la room qu'elle vise...
     if (!info || info.room !== data.roomCode) return
-    // ...si elle a un abonnement actif (verrou incontournable côté serveur)...
-    if (!info.subscribed) return
     // ...et pas plus de 15 vannes par minute (anti-spam).
     if (!allow(`prank_${socket.id}`, 15, 60000)) return
+
+    // Freemium : abonné = illimité ; sinon 5 pranks/jour, puis on propose Premium.
+    if (!info.subscribed && !consumeFree(info.userId)) {
+      socket.emit('limit-reached')
+      return
+    }
 
     socket.to(data.roomCode).emit('receive-prank', {
       imageUrl: data.imageUrl,
@@ -500,6 +574,11 @@ io.on('connection', (socket) => {
       position: data.position,
       size: data.size
     })
+
+    // On informe l'expéditeur de son quota restant (pour l'afficher dans l'app).
+    if (!info.subscribed) {
+      socket.emit('quota', { subscribed: false, remaining: freeRemaining(info.userId) })
+    }
   })
 
   socket.on('disconnect', () => {
