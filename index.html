@@ -382,20 +382,25 @@
       document.getElementById('userEmailSub').textContent = session.user.email
 
       let subscribed = false
+      let remaining = FREE_LIMIT
       try {
         const res = await fetch(SERVER + '/access', {
           headers: { Authorization: 'Bearer ' + session.access_token }
         })
-        subscribed = (await res.json()).subscribed
+        const data = await res.json()
+        subscribed = data.subscribed
+        // Le serveur nous donne le VRAI reste du jour (0 à 5) : on l'affiche tel quel,
+        // pour ne pas montrer "5/5" à tort après une reconnexion.
+        if (typeof data.remaining === 'number') remaining = data.remaining
       } catch (e) {
         console.error('Vérif abonnement échouée:', e)
       }
 
       // Freemium : tout le monde entre dans l'app. L'abonnement débloque l'illimité ;
-      // sinon on affiche le compteur "X/5" (mis à jour par le serveur en rejoignant une room).
+      // sinon on affiche le vrai compteur "X/5" dès la connexion.
       document.getElementById('subscribeCard').style.display = 'none'
       document.getElementById('appCard').style.display = 'flex'
-      updatePremiumUI(subscribed, subscribed ? null : FREE_LIMIT)
+      updatePremiumUI(subscribed, subscribed ? null : remaining)
     }
 
     function showLogin() {

@@ -224,16 +224,18 @@ const server = http.createServer((req, res) => {
     return
   }
 
-  // L'app demande : "l'utilisateur connecté a-t-il un abonnement actif ?"
+  // L'app demande à la connexion : abonné ? et combien de pranks gratuits restants ?
+  // (On renvoie le VRAI reste du jour, pour que l'app n'affiche pas "5/5" à tort
+  //  après une reconnexion alors que le quota est déjà entamé.)
   if (req.url === '/access') {
     const auth = req.headers['authorization'] || ''
     const token = auth.replace('Bearer ', '')
-    isSubscribed(token).then((subscribed) => {
+    getAccess(token).then(({ userId, subscribed }) => {
       res.writeHead(200, {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'
       })
-      res.end(JSON.stringify({ subscribed }))
+      res.end(JSON.stringify({ subscribed, remaining: subscribed ? null : freeRemaining(userId) }))
     })
     return
   }
