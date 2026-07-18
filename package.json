@@ -11,6 +11,7 @@
   "build": {
     "appId": "com.prankchat.app",
     "productName": "PrankChat",
+    "artifactName": "PrankChat-Setup.${ext}",
     "extraResources": [
       {
         "from": "yt-dlp.exe",
