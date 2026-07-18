@@ -46,6 +46,11 @@
     .price-card li { padding: 6px 0; color: var(--muted); }
     .price-card li::before { content: "✓ "; color: #4caf50; font-weight: bold; }
 
+    .plans { display: grid; gap: 18px; grid-template-columns: repeat(2, 1fr); max-width: 700px; margin: 0 auto; }
+    .plan-list { list-style: none; margin: 16px 0; text-align: left; }
+    .plan-list li { padding: 6px 0; color: var(--muted); }
+    .plan-list li::before { content: "✓ "; color: #4caf50; font-weight: bold; }
+
     footer {
       border-top: 1px solid #2a2a44; margin-top: 40px; padding: 30px 0 50px;
       text-align: center; color: var(--muted); font-size: .9rem;
@@ -62,11 +67,20 @@
   <header>
     <div class="wrap">
       <h1>💥 PrankChat</h1>
-      <p>Envoie des vannes en temps réel sur l'écran de tes amis et de tes streamers préférés.</p>
+      <p>Envoie des vannes qui débarquent en plein écran chez tes potes. Gratuit pour commencer.</p>
       <a class="cta" href="https://github.com/Goyo12345/prankchat/releases/latest/download/PrankChat-Setup.exe">⬇️ Télécharger pour Windows</a>
-      <p style="margin-top:14px; font-size:.9rem;"><a href="#tarif" style="color:var(--muted);">Voir l'abonnement — 2,99 CHF/mois</a></p>
+      <p style="margin-top:14px; font-size:.9rem; color:var(--muted);">Gratuit — 5 vannes par jour. <a href="#tarif" style="color:var(--muted);">Premium à 2,99 CHF/mois pour l'illimité</a>.</p>
     </div>
   </header>
+
+  <!-- ▼ EMPLACEMENT VIDÉO DE DÉMO ▼
+       Quand tu auras filmé une réaction (ton pote surpris par une vanne à l'écran),
+       mets-la ici — c'est LE truc qui vend l'app. Remplace ce commentaire par :
+       <section><div class="wrap" style="text-align:center;">
+         <video src="LIEN_DE_TA_VIDEO.mp4" controls playsinline style="max-width:100%; border-radius:16px;"></video>
+       </div></section>
+       Montre la réaction, pas l'interface.
+  ▲ FIN EMPLACEMENT VIDÉO ▲ -->
 
   <section id="comment">
     <div class="wrap">
@@ -74,18 +88,18 @@
       <div class="steps">
         <div class="box">
           <div class="num">1</div>
-          <h3>Crée ton compte</h3>
-          <p>Inscris-toi dans l'application de bureau, en quelques secondes.</p>
+          <h3>Télécharge et crée ton compte</h3>
+          <p>Installe l'app sur Windows et inscris-toi en quelques secondes. C'est gratuit.</p>
         </div>
         <div class="box">
           <div class="num">2</div>
-          <h3>Abonne-toi</h3>
-          <p>Un abonnement mensuel débloque l'envoi de vannes. Sans engagement.</p>
+          <h3>Rejoins une room avec tes potes</h3>
+          <p>Génère un code de room et partage-le à tes amis. Vos écrans sont reliés.</p>
         </div>
         <div class="box">
           <div class="num">3</div>
           <h3>Envoie des vannes</h3>
-          <p>Images, GIFs ou vidéos qui s'affichent en surimpression sur l'écran de ton ami, ou dans OBS pour un streamer.</p>
+          <p>Images, GIFs ou vidéos qui s'affichent en plein écran chez ton pote, ou dans OBS pour un streamer.</p>
         </div>
       </div>
     </div>
@@ -104,15 +118,27 @@
 
   <section id="tarif">
     <div class="wrap">
-      <h2>Tarif</h2>
-      <div class="price-card">
-        <div class="price">2,99 CHF <span>/ mois</span></div>
-        <ul>
-          <li>Envoi illimité de vannes</li>
-          <li>Overlay temps réel + source OBS</li>
-          <li>Sans engagement, annulable à tout moment</li>
-        </ul>
-        <p style="color:var(--muted); font-size:.9rem;">L'abonnement se gère et s'annule directement depuis l'application.</p>
+      <h2>Gratuit, ou Premium pour l'illimité</h2>
+      <div class="plans">
+        <div class="box">
+          <h3>Gratuit</h3>
+          <div class="price" style="font-size:1.8rem;">0 CHF</div>
+          <ul class="plan-list">
+            <li>5 vannes par jour</li>
+            <li>Overlay temps réel + source OBS</li>
+            <li>Réglages : durée, position, taille</li>
+          </ul>
+        </div>
+        <div class="box" style="border:2px solid var(--accent);">
+          <h3>Premium</h3>
+          <div class="price" style="font-size:1.8rem;">2,99 CHF <span>/ mois</span></div>
+          <ul class="plan-list">
+            <li>Vannes <b>illimitées</b></li>
+            <li>Tout ce qu'il y a dans la version gratuite</li>
+            <li>Sans engagement, annulable à tout moment</li>
+          </ul>
+          <p style="color:var(--muted); font-size:.85rem;">Se gère et s'annule depuis l'application.</p>
+        </div>
       </div>
     </div>
   </section>
@@ -121,7 +147,7 @@
     <div class="wrap">
       <h2>Télécharger PrankChat</h2>
       <div class="price-card">
-        <p style="margin-bottom:18px;">Application pour <b>Windows</b>. Installe-la, crée ton compte, abonne-toi, et c'est parti !</p>
+        <p style="margin-bottom:18px;">Application pour <b>Windows</b>. Installe-la, crée ton compte, et lance ta première vanne. Gratuit pour commencer.</p>
         <a class="cta" href="https://github.com/Goyo12345/prankchat/releases/latest/download/PrankChat-Setup.exe">⬇️ Télécharger (.exe)</a>
         <p style="color:var(--muted); font-size:.85rem; margin-top:16px; line-height:1.5;">
           À l'installation, Windows peut afficher « Windows a protégé votre PC / éditeur inconnu » :
