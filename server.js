@@ -504,6 +504,34 @@ const server = http.createServer((req, res) => {
     return
   }
 
+  // Page de stats PRIVÉE (lien secret) : nombre d'inscrits + abonnés actifs.
+  if (req.url.startsWith('/stats')) {
+    const u = new URL(req.url, 'http://localhost')
+    if (u.searchParams.get('secret') !== 'stats-9f3k2mzq') {
+      res.writeHead(403)
+      res.end('non autorise')
+      return
+    }
+    if (!supabaseAdmin) {
+      res.writeHead(500)
+      res.end('Supabase non configuré')
+      return
+    }
+    ;(async () => {
+      const totalQ = await supabaseAdmin.from('subscriptions').select('*', { count: 'exact', head: true })
+      const activeQ = await supabaseAdmin.from('subscriptions').select('*', { count: 'exact', head: true }).eq('status', 'active')
+      const total = totalQ.count || 0
+      const active = activeQ.count || 0
+      const revenu = (active * 2.99).toFixed(2)
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+      res.end(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PrankChat — Statistiques</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#1a1a2e;color:#f2f2f7;font-family:'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}h1{color:#e94560;margin-bottom:30px;text-align:center}.cards{display:flex;gap:20px;flex-wrap:wrap;justify-content:center}.card{background:#16213e;border-radius:16px;padding:30px 40px;text-align:center;min-width:200px}.num{font-size:2.6rem;font-weight:bold;color:#e94560}.lbl{color:#a0a0b0;margin-top:6px}.r{margin-top:24px;color:#a0a0b0;font-size:.85rem}</style></head><body><h1>📊 PrankChat — Statistiques</h1><div class="cards"><div class="card"><div class="num">${total}</div><div class="lbl">👥 Comptes inscrits</div></div><div class="card"><div class="num">${active}</div><div class="lbl">⭐ Abonnés actifs</div></div><div class="card"><div class="num">${revenu} CHF</div><div class="lbl">💰 Revenus / mois (est.)</div></div></div><p class="r">Rafraîchis la page pour les chiffres à jour.</p></body></html>`)
+    })().catch((e) => {
+      res.writeHead(500)
+      res.end('Erreur: ' + e.message)
+    })
+    return
+  }
+
   res.writeHead(200)
   res.end('PrankChat server running')
 })
