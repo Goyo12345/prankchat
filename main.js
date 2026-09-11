@@ -1,4 +1,5 @@
-const { app, BrowserWindow, ipcMain, screen } = require('electron')
+const { app, BrowserWindow, ipcMain, screen, dialog } = require('electron')
+const { setupAppUpdates, updateDownloader } = require('./updates')
 const path = require('path')
 const { exec } = require('child_process')
 const fs = require('fs')
@@ -10,6 +11,16 @@ const SERVER_HOST = 'prankchat-production.up.railway.app'
 
 let mainWindow
 let overlayWindow
+let updatedYtdlpPath
+
+if (!app.requestSingleInstanceLock()) app.quit()
+app.on('second-instance', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.focus()
+  }
+})
+app.on('window-all-closed', () => app.quit())
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
@@ -21,6 +32,7 @@ function createMainWindow() {
     }
   })
   mainWindow.loadFile('index.html')
+  mainWindow.on('closed', () => app.quit())
 }
 
 function createOverlay() {
@@ -52,9 +64,9 @@ function showOverlay(data) {
 
 // Chemin vers yt-dlp.exe (différent selon que l'app est installée ou en dev)
 function getYtdlpPath() {
-  return app.isPackaged
+  return updatedYtdlpPath || (app.isPackaged
     ? path.join(process.resourcesPath, 'yt-dlp.exe')
-    : path.join(app.getAppPath(), 'yt-dlp.exe')
+    : path.join(app.getAppPath(), 'yt-dlp.exe'))
 }
 
 function isDirectMedia(url) {
@@ -177,6 +189,12 @@ app.whenReady().then(() => {
   cleanupTempFiles()
   createMainWindow()
   createOverlay()
+  if (app.isPackaged) {
+    setupAppUpdates({ app, autoUpdater: require('electron-updater').autoUpdater, dialog, getWindow: () => mainWindow })
+    updateDownloader({ bundledPath: getYtdlpPath(), cacheDir: path.join(app.getPath('userData'), 'downloader') })
+      .then(file => { updatedYtdlpPath = file })
+      .catch(error => console.error('Préparation yt-dlp:', error.message))
+  }
 })
 
 ipcMain.on('show-prank', (event, data) => {
