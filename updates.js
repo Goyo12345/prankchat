@@ -5,7 +5,7 @@ const { execFile } = require('child_process')
 const { promisify } = require('util')
 const run = promisify(execFile)
 
-function setupAppUpdates({ app, autoUpdater, dialog, getWindow }) {
+function setupAppUpdates({ app, autoUpdater, dialog, getWindow, getLanguage = () => 'fr' }) {
   if (!app.isPackaged) return
   autoUpdater.autoDownload = true
   // Never restart or install implicitly when the user closes the app.
@@ -19,11 +19,14 @@ function setupAppUpdates({ app, autoUpdater, dialog, getWindow }) {
     if (ready) return
     ready = true
     try {
+      const catalog = require('./translations')
+      const index = Math.max(0, ['fr', 'en', 'de', 'es', 'it', 'pt'].indexOf(getLanguage()))
+      const t = key => catalog[key][index]
       const options = {
-        type: 'info', title: 'Mise à jour PrankChat',
-        message: `PrankChat ${info.version} est prêt à être installé.`,
-        detail: 'Le redémarrage ferme votre session actuelle. Vous pouvez continuer et installer la mise à jour au prochain lancement.',
-        buttons: ['Plus tard', 'Redémarrer et mettre à jour'], defaultId: 0, cancelId: 0
+        type: 'info', title: t('updateTitle'),
+        message: t('updateReady').replace('{version}', info.version),
+        detail: t('updateDetail'),
+        buttons: [t('later'), t('restart')], defaultId: 0, cancelId: 0
       }
       const win = getWindow()
       const result = win && !win.isDestroyed()

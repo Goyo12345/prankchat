@@ -1,0 +1,8 @@
+.language-toolbar { display:flex; gap:10px; align-items:center; justify-content:flex-end; padding:12px 20px; width:100%; flex-shrink:0; font:14px 'Segoe UI',sans-serif; color:#f2f2f7; }
+.language-toolbar select { background:#16213e; color:#fff; border:1px solid #7183a0; border-radius:8px; padding:8px 10px; max-width:190px; }
+.language-toolbar select:focus-visible { outline:2px solid #e94560; outline-offset:3px; }
+body.app { min-height:100vh; height:auto; justify-content:flex-start; padding-bottom:24px; }
+body.app .card { width:min(600px, calc(100% - 24px)); flex-shrink:0; }
+body.app .user-bar { flex-wrap:wrap; gap:8px; }
+body.app .room-section { flex-wrap:wrap; }
+@media (max-width:640px) { .plans { grid-template-columns:1fr; } }

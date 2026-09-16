@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PrankChat — Envoie des vannes en temps réel</title>
+  <title data-i18n="siteTitle">PrankChat — Envoie des vannes en temps réel</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
@@ -62,14 +62,15 @@
       .steps, .feats { grid-template-columns: 1fr; }
     }
   </style>
+  <link rel="stylesheet" href="i18n.css">
 </head>
 <body>
   <header>
     <div class="wrap">
       <h1>💥 PrankChat</h1>
-      <p>Envoie des vannes qui débarquent en plein écran chez tes potes. Gratuit pour commencer.</p>
-      <a class="cta" href="https://github.com/Goyo12345/prankchat/releases/latest/download/PrankChat-Setup.exe">⬇️ Télécharger pour Windows</a>
-      <p style="margin-top:14px; font-size:.9rem; color:var(--muted);">Gratuit — 5 vannes par jour. <a href="#tarif" style="color:var(--muted);">Premium à 2,99 CHF/mois pour l'illimité</a>.</p>
+      <p><span data-i18n="hero">Envoie des vannes qui débarquent en plein écran chez tes potes. Gratuit pour commencer.</span></p>
+      <a class="cta" href="https://github.com/Goyo12345/prankchat/releases/latest/download/PrankChat-Setup.exe"><span data-i18n="downloadWindows">⬇️ Télécharger pour Windows</span></a>
+      <p style="margin-top:14px; font-size:.9rem; color:var(--muted);"><span data-i18n="freeDaily">Gratuit — 5 vannes par jour.</span> <a href="#tarif" style="color:var(--muted);"><span data-i18n="premiumPrice">Premium à 2,99 CHF/mois pour l'illimité</span></a>.</p>
     </div>
   </header>
 
@@ -84,22 +85,22 @@
 
   <section id="comment">
     <div class="wrap">
-      <h2>Comment ça marche</h2>
+      <h2><span data-i18n="how">Comment ça marche</span></h2>
       <div class="steps">
         <div class="box">
           <div class="num">1</div>
-          <h3>Télécharge et crée ton compte</h3>
-          <p>Installe l'app sur Windows et inscris-toi en quelques secondes. C'est gratuit.</p>
+          <h3><span data-i18n="step1">Télécharge et crée ton compte</span></h3>
+          <p><span data-i18n="step1Body">Installe l'app sur Windows et inscris-toi en quelques secondes. C'est gratuit.</span></p>
         </div>
         <div class="box">
           <div class="num">2</div>
-          <h3>Rejoins une room avec tes potes</h3>
-          <p>Génère un code de room et partage-le à tes amis. Vos écrans sont reliés.</p>
+          <h3><span data-i18n="step2">Rejoins une room avec tes potes</span></h3>
+          <p><span data-i18n="step2Body">Génère un code de room et partage-le à tes amis. Vos écrans sont reliés.</span></p>
         </div>
         <div class="box">
           <div class="num">3</div>
-          <h3>Envoie des vannes</h3>
-          <p>Images, GIFs ou vidéos qui s'affichent en plein écran chez ton pote, ou dans OBS pour un streamer.</p>
+          <h3><span data-i18n="step3">Envoie des vannes</span></h3>
+          <p><span data-i18n="step3Body">Images, GIFs ou vidéos qui s'affichent en plein écran chez ton pote, ou dans OBS pour un streamer.</span></p>
         </div>
       </div>
     </div>
@@ -107,37 +108,37 @@
 
   <section id="fonctionnalites">
     <div class="wrap">
-      <h2>Fonctionnalités</h2>
+      <h2><span data-i18n="features">Fonctionnalités</span></h2>
       <div class="feats">
-        <div class="box"><h3>🎬 Overlay temps réel</h3><p>Les vannes apparaissent instantanément par-dessus l'écran.</p></div>
-        <div class="box"><h3>📺 Source OBS</h3><p>Une page dédiée pour les streamers, à ajouter comme source navigateur.</p></div>
-        <div class="box"><h3>🎨 Réglages</h3><p>Choisis la durée, la position à l'écran et la taille de chaque vanne.</p></div>
+        <div class="box"><h3><span data-i18n="overlay">🎬 Overlay temps réel</span></h3><p><span data-i18n="overlayBody">Les vannes apparaissent instantanément par-dessus l'écran.</span></p></div>
+        <div class="box"><h3><span data-i18n="obs">📺 Source OBS</span></h3><p><span data-i18n="obsBody">Une page dédiée pour les streamers, à ajouter comme source navigateur.</span></p></div>
+        <div class="box"><h3><span data-i18n="settings">🎨 Réglages</span></h3><p><span data-i18n="settingsBody">Choisis la durée, la position à l'écran et la taille de chaque vanne.</span></p></div>
       </div>
     </div>
   </section>
 
   <section id="tarif">
     <div class="wrap">
-      <h2>Gratuit, ou Premium pour l'illimité</h2>
+      <h2><span data-i18n="plans">Gratuit, ou Premium pour l'illimité</span></h2>
       <div class="plans">
         <div class="box">
-          <h3>Gratuit</h3>
+          <h3><span data-i18n="free">Gratuit</span></h3>
           <div class="price" style="font-size:1.8rem;">0 CHF</div>
           <ul class="plan-list">
-            <li>5 vannes par jour</li>
-            <li>Overlay temps réel + source OBS</li>
-            <li>Réglages : durée, position, taille</li>
+            <li><span data-i18n="five">5 vannes par jour</span></li>
+            <li><span data-i18n="overlayObs">Overlay temps réel + source OBS</span></li>
+            <li><span data-i18n="adjustments">Réglages : durée, position, taille</span></li>
           </ul>
         </div>
         <div class="box" style="border:2px solid var(--accent);">
           <h3>Premium</h3>
-          <div class="price" style="font-size:1.8rem;">2,99 CHF <span>/ mois</span></div>
+          <div class="price" style="font-size:1.8rem;">2,99 CHF <span><span data-i18n="month">/ mois</span></span></div>
           <ul class="plan-list">
-            <li>Vannes <b>illimitées</b></li>
-            <li>Tout ce qu'il y a dans la version gratuite</li>
-            <li>Sans engagement, annulable à tout moment</li>
+            <li><span data-i18n="unlimited">Vannes illimitées</span></li>
+            <li><span data-i18n="included">Tout ce qu'il y a dans la version gratuite</span></li>
+            <li><span data-i18n="cancel">Sans engagement, annulable à tout moment</span></li>
           </ul>
-          <p style="color:var(--muted); font-size:.85rem;">Se gère et s'annule depuis l'application.</p>
+          <p style="color:var(--muted); font-size:.85rem;"><span data-i18n="manageBody">Se gère et s'annule depuis l'application.</span></p>
         </div>
       </div>
     </div>
@@ -145,14 +146,12 @@
 
   <section id="download">
     <div class="wrap">
-      <h2>Télécharger PrankChat</h2>
+      <h2><span data-i18n="download">Télécharger PrankChat</span></h2>
       <div class="price-card">
-        <p style="margin-bottom:18px;">Application pour <b>Windows</b>. Installe-la, crée ton compte, et lance ta première vanne. Gratuit pour commencer.</p>
-        <a class="cta" href="https://github.com/Goyo12345/prankchat/releases/latest/download/PrankChat-Setup.exe">⬇️ Télécharger (.exe)</a>
+        <p style="margin-bottom:18px;"><span data-i18n="downloadBody">Application pour Windows. Installe-la, crée ton compte, et lance ta première vanne. Gratuit pour commencer.</span></p>
+        <a class="cta" href="https://github.com/Goyo12345/prankchat/releases/latest/download/PrankChat-Setup.exe"><span data-i18n="exe">⬇️ Télécharger (.exe)</span></a>
         <p style="color:var(--muted); font-size:.85rem; margin-top:16px; line-height:1.5;">
-          À l'installation, Windows peut afficher « Windows a protégé votre PC / éditeur inconnu » :
-          clique sur <b>« Informations complémentaires »</b> puis <b>« Exécuter quand même »</b>.
-          C'est normal pour une application indépendante.
+          <span data-i18n="installNotice">À l'installation, Windows peut afficher « Windows a protégé votre PC / éditeur inconnu ». Vérifie que tu as téléchargé l'installateur depuis le lien officiel ci-dessus avant de continuer.</span>
         </p>
       </div>
     </div>
@@ -161,12 +160,14 @@
   <footer>
     <div class="wrap">
       <p>
-        <a href="/cgu">Conditions d'utilisation</a> ·
-        <a href="mailto:mircoazzi12@gmail.com">Contact : mircoazzi12@gmail.com</a>
+        <a href="/cgu"><span data-i18n="terms">Conditions d'utilisation (français)</span></a> ·
+        <a href="mailto:mircoazzi12@gmail.com"><span data-i18n="contact">Contact</span> : mircoazzi12@gmail.com</a>
       </p>
-      <p style="margin-top:12px;">© <span id="y"></span> PrankChat — Édité en Suisse.</p>
+      <p style="margin-top:12px;">© <span id="y"></span> <span data-i18n="publisher">PrankChat — Édité en Suisse.</span></p>
     </div>
   </footer>
+  <script src="translations.js"></script>
+  <script src="i18n.js"></script>
   <script>document.getElementById('y').textContent = new Date().getFullYear()</script>
 </body>
 </html>

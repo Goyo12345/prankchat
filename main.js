@@ -12,6 +12,12 @@ const SERVER_HOST = 'prankchat-production.up.railway.app'
 let mainWindow
 let overlayWindow
 let updatedYtdlpPath
+let interfaceLanguage
+ipcMain.on('set-language', (event, language) => {
+  if (mainWindow && event.sender === mainWindow.webContents && ['fr', 'en', 'de', 'es', 'it', 'pt'].includes(language)) {
+    interfaceLanguage = language
+  }
+})
 
 if (!app.requestSingleInstanceLock()) app.quit()
 app.on('second-instance', () => {
@@ -190,7 +196,7 @@ app.whenReady().then(() => {
   createMainWindow()
   createOverlay()
   if (app.isPackaged) {
-    setupAppUpdates({ app, autoUpdater: require('electron-updater').autoUpdater, dialog, getWindow: () => mainWindow })
+    setupAppUpdates({ app, autoUpdater: require('electron-updater').autoUpdater, dialog, getWindow: () => mainWindow, getLanguage: () => interfaceLanguage || app.getLocale().split('-')[0] })
     updateDownloader({ bundledPath: getYtdlpPath(), cacheDir: path.join(app.getPath('userData'), 'downloader') })
       .then(file => { updatedYtdlpPath = file })
       .catch(error => console.error('Préparation yt-dlp:', error.message))

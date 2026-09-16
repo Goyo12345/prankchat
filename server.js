@@ -246,7 +246,7 @@ const server = http.createServer((req, res) => {
     const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim()
     if (!allow(`signup_${ip}`, 5, 60000)) {
       res.writeHead(429, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' })
-      res.end(JSON.stringify({ error: 'Trop de tentatives, réessaie dans une minute.' }))
+      res.end(JSON.stringify({ error: 'Trop de tentatives, réessaie dans une minute.', code: 'over_request_rate_limit' }))
       return
     }
     const chunks = []
@@ -265,7 +265,7 @@ const server = http.createServer((req, res) => {
       }
       const { error } = await supabaseAdmin.auth.admin.createUser({ email, password, email_confirm: true })
       if (error) {
-        res.writeHead(400, cors); res.end(JSON.stringify({ error: error.message })); return
+        res.writeHead(400, cors); res.end(JSON.stringify({ error: error.message, code: error.code })); return
       }
       res.writeHead(200, cors); res.end(JSON.stringify({ ok: true }))
     })
@@ -332,20 +332,13 @@ const server = http.createServer((req, res) => {
     return
   }
 
-  // Petites pages affichées dans le navigateur après le paiement
-  if (req.url === '/paiement-ok') {
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
-    res.end('<h1 style="font-family:sans-serif;text-align:center;margin-top:20vh">✅ Paiement réussi !<br>Retourne dans PrankChat et clique « J\'ai payé ».</h1>')
-    return
-  }
-  if (req.url === '/paiement-annule') {
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
-    res.end('<h1 style="font-family:sans-serif;text-align:center;margin-top:20vh">Paiement annulé.<br>Tu peux fermer cette page.</h1>')
-    return
-  }
-  if (req.url === '/portail-retour') {
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
-    res.end('<h1 style="font-family:sans-serif;text-align:center;margin-top:20vh">✅ C\'est noté !<br>Tu peux fermer cette page et retourner dans PrankChat.</h1>')
+  // Localized pages shown after returning from the payment provider.
+  if (['/paiement-ok', '/paiement-annule', '/portail-retour'].includes(req.url)) {
+    fs.readFile(path.join(__dirname, 'payment.html'), (err, data) => {
+      if (err) { res.writeHead(500); res.end('Error'); return }
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+      res.end(data)
+    })
     return
   }
 
@@ -481,6 +474,16 @@ const server = http.createServer((req, res) => {
         return
       }
       res.writeHead(200, { 'Content-Type': 'text/html' })
+      res.end(data)
+    })
+    return
+  }
+
+  // Explicit public assets only: never expose arbitrary files from the server.
+  if (['/translations.js', '/i18n.js', '/i18n.css'].includes(req.url)) {
+    fs.readFile(path.join(__dirname, req.url.slice(1)), (err, data) => {
+      if (err) { res.writeHead(404); res.end('Not found'); return }
+      res.writeHead(200, { 'Content-Type': req.url.endsWith('.css') ? 'text/css; charset=utf-8' : 'application/javascript; charset=utf-8' })
       res.end(data)
     })
     return

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
   <meta charset="UTF-8">
   <title>PrankChat</title>
@@ -183,18 +183,19 @@
     .auth-secondary:hover { background: #14477f; }
 
   </style>
+  <link rel="stylesheet" href="i18n.css">
 </head>
-<body>
+<body class="app">
   <h1>💥 PrankChat</h1>
-  <p class="subtitle">Envoie des vannes à tes amis en temps réel</p>
+  <p class="subtitle"><span data-i18n="tagline">Envoie des vannes à tes amis en temps réel</span></p>
 
   <!-- Écran de connexion (visible tant qu'on n'est pas connecté) -->
   <div class="card" id="authCard">
-    <input type="email" id="authEmail" placeholder="Ton email" />
-    <input type="password" id="authPassword" placeholder="Ton mot de passe (min. 6 caractères)" />
+    <input type="email" id="authEmail" placeholder="Ton email" data-i18n-placeholder="email" />
+    <input type="password" id="authPassword" placeholder="Ton mot de passe (min. 6 caractères)" data-i18n-placeholder="password" />
     <div class="status" id="authStatus" style="display:none"></div>
-    <button onclick="logIn()">Se connecter</button>
-    <button class="auth-secondary" onclick="signUp()">Créer un compte</button>
+    <button onclick="logIn()"><span data-i18n="login">Se connecter</span></button>
+    <button class="auth-secondary" onclick="signUp()"><span data-i18n="signup">Créer un compte</span></button>
   </div>
 
   <!-- L'app (cachée tant qu'on n'est pas connecté) -->
@@ -202,29 +203,29 @@
     <div class="user-bar">
       <span>👤 <span id="userEmail"></span></span>
       <span>
-        <button id="premiumBtn" onclick="startSubscription()" style="display:none">✨ Passer Premium</button>
-        <button id="manageBtn" onclick="manageSubscription()" style="display:none">Gérer l'abo</button>
-        <button onclick="logOut()">Déconnexion</button>
+        <button id="premiumBtn" onclick="startSubscription()" style="display:none"><span data-i18n="premium">✨ Passer Premium</span></button>
+        <button id="manageBtn" onclick="manageSubscription()" style="display:none"><span data-i18n="manage">Gérer l'abo</span></button>
+        <button onclick="logOut()"><span data-i18n="logout">Déconnexion</span></button>
       </span>
     </div>
 
     <div class="room-section">
-      <input type="text" id="roomCode" placeholder="Code de la room" />
-      <button onclick="generateRoomCode()" title="Générer un code sécurisé">🎲</button>
-      <button onclick="joinRoom()">Rejoindre</button>
+      <input type="text" id="roomCode" placeholder="Code de la room" data-i18n-placeholder="room" />
+      <button onclick="generateRoomCode()" title="Générer un code sécurisé" data-i18n-title="generate">🎲</button>
+      <button onclick="joinRoom()"><span data-i18n="join">Rejoindre</span></button>
     </div>
 
-    <div class="status deconnecte" id="status">❌ Non connecté</div>
+    <div class="status deconnecte" id="status"><span data-i18n="offline">❌ Non connecté</span></div>
 
     <!-- Freemium : compteur de pranks gratuits du jour (caché pour les abonnés) -->
     <div class="status" id="quotaBar" style="display:none"></div>
 
-    <input type="text" id="imageUrl" placeholder="URL image, GIF, YouTube, TikTok..." />
-    <input type="text" id="caption" placeholder="Texte de la vanne (optionnel)" />
+    <input type="text" id="imageUrl" placeholder="URL image, GIF, YouTube, TikTok..." data-i18n-placeholder="url" />
+    <input type="text" id="caption" placeholder="Texte de la vanne (optionnel)" data-i18n-placeholder="caption" />
 
     <div class="controls">
       <div class="control-row">
-        <span class="control-label" title="Durée d'affichage">⏱️</span>
+        <span class="control-label" title="Durée d'affichage" data-i18n-title="duration">⏱️</span>
         <div class="opt-group" id="durationGroup">
           <button class="opt active" data-value="10000">10s</button>
           <button class="opt" data-value="20000">20s</button>
@@ -236,60 +237,65 @@
       </div>
 
       <div class="control-row">
-        <span class="control-label" title="Taille">🔎</span>
+        <span class="control-label" title="Taille" data-i18n-title="size">🔎</span>
         <div class="opt-group" id="sizeGroup">
-          <button class="opt" data-value="small">Petit</button>
-          <button class="opt active" data-value="medium">Moyen</button>
-          <button class="opt" data-value="large">Grand</button>
+          <button class="opt" data-value="small"><span data-i18n="small">Petit</span></button>
+          <button class="opt active" data-value="medium"><span data-i18n="medium">Moyen</span></button>
+          <button class="opt" data-value="large"><span data-i18n="large">Grand</span></button>
         </div>
       </div>
 
       <div class="control-row">
-        <span class="control-label" title="Position">📍</span>
+        <span class="control-label" title="Position" data-i18n-title="position">📍</span>
         <div class="opt-group" id="positionGroup">
           <div class="pos-grid">
-            <button class="opt" data-value="top-left" title="Haut-gauche">↖</button>
-            <button class="opt" data-value="top" title="Haut">↑</button>
-            <button class="opt" data-value="top-right" title="Haut-droite">↗</button>
-            <button class="opt" data-value="left" title="Gauche">←</button>
-            <button class="opt active" data-value="center" title="Centre">●</button>
-            <button class="opt" data-value="right" title="Droite">→</button>
-            <button class="opt" data-value="bottom-left" title="Bas-gauche">↙</button>
-            <button class="opt" data-value="bottom" title="Bas">↓</button>
-            <button class="opt" data-value="bottom-right" title="Bas-droite">↘</button>
+            <button class="opt" data-value="top-left" title="Haut-gauche" data-i18n-title="topLeft">↖</button>
+            <button class="opt" data-value="top" title="Haut" data-i18n-title="top">↑</button>
+            <button class="opt" data-value="top-right" title="Haut-droite" data-i18n-title="topRight">↗</button>
+            <button class="opt" data-value="left" title="Gauche" data-i18n-title="left">←</button>
+            <button class="opt active" data-value="center" title="Centre" data-i18n-title="center">●</button>
+            <button class="opt" data-value="right" title="Droite" data-i18n-title="right">→</button>
+            <button class="opt" data-value="bottom-left" title="Bas-gauche" data-i18n-title="bottomLeft">↙</button>
+            <button class="opt" data-value="bottom" title="Bas" data-i18n-title="bottom">↓</button>
+            <button class="opt" data-value="bottom-right" title="Bas-droite" data-i18n-title="bottomRight">↘</button>
           </div>
-          <button class="opt" data-value="random" title="Position aléatoire">🎲</button>
+          <button class="opt" data-value="random" title="Position aléatoire" data-i18n-title="random">🎲</button>
         </div>
       </div>
     </div>
 
     <!-- Freemium : invitation à passer Premium quand les 5 pranks du jour sont épuisés -->
     <div id="upsellBox" style="display:none; text-align:center; background:#2a1a2e; border:1px solid #e94560; border-radius:12px; padding:14px; margin-bottom:10px;">
-      <p style="margin:0 0 10px; line-height:1.4;">🔥 Tu as utilisé tes 5 pranks gratuits du jour !<br>Passe en <b>Premium</b> pour des pranks illimités.</p>
-      <button onclick="startSubscription()">✨ Passer en illimité — 2.99 CHF/mois</button>
-      <button class="auth-secondary" onclick="recheckAccess()">🔄 J'ai payé, vérifier</button>
+      <p style="margin:0 0 10px; line-height:1.4;"><span data-i18n="upsell">🔥 Tu as utilisé tes 5 pranks gratuits du jour ! Passe en Premium pour des pranks illimités.</span></p>
+      <button onclick="startSubscription()"><span data-i18n="upgrade">✨ Passer en illimité — 2.99 CHF/mois</span></button>
+      <button class="auth-secondary" onclick="recheckAccess()"><span data-i18n="recheck">🔄 J'ai payé, vérifier</span></button>
     </div>
 
-    <button id="sendBtn" onclick="sendPrank()">🎯 Envoyer la vanne</button>
+    <button id="sendBtn" onclick="sendPrank()"><span data-i18n="send">🎯 Envoyer la vanne</span></button>
   </div>
 
   <!-- Écran "abonnement requis" (connecté mais pas abonné) -->
   <div class="card" id="subscribeCard" style="display:none">
     <div class="user-bar">
       <span>👤 <span id="userEmailSub"></span></span>
-      <button onclick="logOut()">Déconnexion</button>
+      <button onclick="logOut()"><span data-i18n="logout">Déconnexion</span></button>
     </div>
     <p style="text-align:center; line-height:1.5;">
-      🔒 Pour envoyer des vannes, il te faut un <b>abonnement actif</b>.
+      <span data-i18n="required">🔒 Pour envoyer des vannes, il te faut un abonnement actif.</span>
     </p>
-    <button onclick="startSubscription()">✨ S'abonner</button>
-    <button class="auth-secondary" onclick="recheckAccess()">🔄 J'ai payé, vérifier</button>
+    <button onclick="startSubscription()"><span data-i18n="subscribe">✨ S'abonner</span></button>
+    <button class="auth-secondary" onclick="recheckAccess()"><span data-i18n="recheck">🔄 J'ai payé, vérifier</span></button>
   </div>
 
+  <script src="translations.js"></script>
+  <script src="i18n.js"></script>
   <script src="config.js"></script>
   <script>
     const { ipcRenderer } = require('electron')
     const io = require('socket.io-client')
+    const syncLanguage = () => ipcRenderer.send('set-language', I18n.language)
+    window.addEventListener('languagechange', syncLanguage)
+    syncLanguage()
     const { createClient } = require('@supabase/supabase-js')
 
     const supabase = createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY)
@@ -322,9 +328,7 @@
         myRemaining = remaining
         quotaBar.style.display = 'block'
         quotaBar.className = 'status ' + (remaining > 0 ? 'attente' : 'deconnecte')
-        quotaBar.textContent = remaining > 0
-          ? '🎁 Pranks gratuits aujourd\'hui : ' + remaining + '/' + FREE_LIMIT
-          : '🚫 Plus de pranks gratuits aujourd\'hui'
+        I18n.text(quotaBar, remaining > 0 ? 'quota' : 'exhausted', { remaining, limit: FREE_LIMIT })
         upsell.style.display = remaining > 0 ? 'none' : 'block'
       }
     }
@@ -367,7 +371,9 @@
 
     function showAuthStatus(msg, ok) {
       const el = document.getElementById('authStatus')
-      el.textContent = msg
+      const key = Object.keys(PRANKCHAT_TRANSLATIONS).find(key => I18n.t(key) === msg)
+      if (key) I18n.text(el, key)
+      else el.textContent = msg
       el.className = 'status ' + (ok ? 'connecte' : 'deconnecte')
       el.style.display = 'block'
     }
@@ -421,10 +427,10 @@
         if (url) {
           require('electron').shell.openExternal(url) // ouvre la page de paiement dans le navigateur
         } else {
-          alert('Impossible de démarrer le paiement pour le moment. Réessaie dans un instant.')
+          alert(I18n.t('checkoutError'))
         }
       } catch (e) {
-        alert('Erreur : ' + e.message)
+        alert(I18n.t('networkError'))
       }
     }
 
@@ -447,17 +453,19 @@
         if (url) {
           require('electron').shell.openExternal(url)
         } else {
-          alert('Impossible d\'ouvrir la gestion de l\'abonnement pour le moment.')
+          alert(I18n.t('portalError'))
         }
       } catch (e) {
-        alert('Erreur : ' + e.message)
+        alert(I18n.t('networkError'))
       }
     }
 
     async function signUp() {
       const email = document.getElementById('authEmail').value.trim()
       const password = document.getElementById('authPassword').value
-      if (!email || !password) { showAuthStatus('Remplis l\'email et le mot de passe.', false); return }
+      if (!email || !password) { showAuthStatus(I18n.t('credentials'), false); return }
+      if (!document.getElementById('authEmail').checkValidity()) { showAuthStatus(I18n.t('invalidEmail'), false); return }
+      if (password.length < 6) { showAuthStatus(I18n.t('weakPassword'), false); return }
       try {
         // Le serveur crée le compte (déjà confirmé), puis on se connecte direct.
         const res = await fetch(SERVER + '/signup', {
@@ -467,23 +475,24 @@
         })
         const data = await res.json()
         if (!res.ok || data.error) {
-          showAuthStatus(data.error || 'Erreur à l\'inscription.', false)
+          const errorKeys = { email_exists: 'accountExists', user_already_exists: 'accountExists', email_address_invalid: 'invalidEmail', weak_password: 'weakPassword', over_request_rate_limit: 'tooMany' }
+          showAuthStatus(I18n.t(res.status === 429 ? 'tooMany' : errorKeys[data.code] || 'signupError'), false)
           return
         }
         const { data: loginData, error } = await supabase.auth.signInWithPassword({ email, password })
-        if (error) { showAuthStatus(error.message, false); return }
+        if (error) { showAuthStatus(I18n.t('loginError'), false); return }
         enterApp(loginData.session)
       } catch (e) {
-        showAuthStatus('Erreur : ' + e.message, false)
+        showAuthStatus(I18n.t('networkError'), false)
       }
     }
 
     async function logIn() {
       const email = document.getElementById('authEmail').value.trim()
       const password = document.getElementById('authPassword').value
-      if (!email || !password) { showAuthStatus('Remplis l\'email et le mot de passe.', false); return }
+      if (!email || !password) { showAuthStatus(I18n.t('credentials'), false); return }
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) { showAuthStatus(error.message, false); return }
+      if (error) { showAuthStatus(I18n.t('loginError'), false); return }
       enterApp(data.session)
     }
 
@@ -501,7 +510,7 @@
     async function joinRoom() {
       const roomCode = document.getElementById('roomCode').value.trim()
       if (!roomCode) {
-        alert('Entre un code de room !')
+        alert(I18n.t('enterRoom'))
         return
       }
 
@@ -517,18 +526,18 @@
           mySendToken = token
         })
         currentRoom = roomCode
-        document.getElementById('status').textContent = '⏳ En attente de ton ami...'
+        I18n.text('status', 'waiting')
         document.getElementById('status').className = 'status attente'
       })
 
       socket.on('friend-connected', () => {
-        document.getElementById('status').textContent = '✅ Ami connecté ! Envoie des vannes !'
+        I18n.text('status', 'connected')
         document.getElementById('status').className = 'status connecte'
       })
 
       socket.on('room-users', (count) => {
         if (count >= 2) {
-          document.getElementById('status').textContent = '✅ Ami connecté ! Envoie des vannes !'
+          I18n.text('status', 'connected')
           document.getElementById('status').className = 'status connecte'
         }
       })
@@ -549,7 +558,7 @@
 
     function sendPrank() {
       if (!socket || !currentRoom) {
-        alert('Rejoins une room d\'abord !')
+        alert(I18n.t('joinFirst'))
         return
       }
 
@@ -560,7 +569,7 @@
       const size = getOption('sizeGroup')
 
       if (!imageUrl) {
-        alert('Mets une URL d\'image ou GIF !')
+        alert(I18n.t('enterUrl'))
         return
       }
 
@@ -573,7 +582,7 @@
 
       const btn = document.getElementById('sendBtn')
       btn.disabled = true
-      btn.textContent = '⏳ Envoi en cours...'
+      I18n.text(btn, 'sending')
       btn.style.background = '#888'
 
       if (isYoutubeOrTiktok(imageUrl)) {
@@ -605,7 +614,7 @@
 
       setTimeout(() => {
         btn.disabled = false
-        btn.textContent = '🎯 Envoyer la vanne'
+        I18n.text(btn, 'send')
         btn.style.background = '#e94560'
       }, 8000)
     }
