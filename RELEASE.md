@@ -1,7 +1,7 @@
 # Publier une mise à jour PrankChat
 
 1. Augmenter `version` dans package.json et package-lock.json (ex. 1.2.1).
-2. Exécuter `node --test updates.test.js`, puis `npm run build -- --publish never`.
+2. Exécuter `node --test updates.test.js`, puis `npm run build:desktop`.
 3. Créer une release GitHub avec le tag correspondant (ex. v1.2.1).
 4. Joindre les trois fichiers du même build :
    - dist/PrankChat-Setup.exe

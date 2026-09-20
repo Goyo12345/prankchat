@@ -22,4 +22,8 @@ Validation : `node --test updates.test.js`, puis
 un profil temporaire et bloque le réseau. Il vérifie les six langues, leur
 persistance, le quota, Premium et la conservation des saisies.
 
-Compilation : `npm run build -- --publish never --config.directories.output=dist/1.3.0`.
+Compilation Windows : `npm run build:desktop -- --config.directories.output=dist/1.3.0`.
+
+Railway utilise `npm run build` pour vérifier le serveur, puis `npm start` pour
+le lancer. Le site sert directement ses fichiers HTML, CSS et JavaScript : il
+ne doit pas lancer Electron ni publier un installateur depuis Railway.

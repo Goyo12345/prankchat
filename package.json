@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "electron": "electron .",
-    "build": "electron-builder"
+    "build": "node --check server.js",
+    "build:desktop": "electron-builder --publish never"
   },
   "build": {
     "appId": "com.prankchat.app",
